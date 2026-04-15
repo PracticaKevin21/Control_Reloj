@@ -3,16 +3,16 @@ const authService = require('../services/auth.service');
 // LOGIN
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const { correo, password } = req.body;
 
-    if (!email || !password) {
+    if (!correo || !password) {
       return res.status(400).json({
         ok: false,
-        mensaje: 'Email y contraseña son obligatorios'
+        mensaje: 'Correo y contraseña son obligatorios'
       });
     }
 
-    const result = await authService.login(email, password);
+    const result = await authService.login(correo, password);
 
     return res.status(200).json(result);
   } catch (error) {
@@ -26,20 +26,22 @@ async function login(req, res) {
 // REGISTER
 async function register(req, res) {
   try {
-    const { nombre, email, password, rol } = req.body;
+    const { nombres, apellidos, correo, password, id_rol, id_area } = req.body;
 
-    if (!nombre || !email || !password) {
+    if (!nombres || !apellidos || !correo || !password || !id_rol || !id_area) {
       return res.status(400).json({
         ok: false,
-        mensaje: 'Nombre, email y contraseña son obligatorios'
+        mensaje: 'Nombres, apellidos, correo, contraseña, rol y área son obligatorios'
       });
     }
 
     const result = await authService.register({
-      nombre,
-      email,
+      nombres,
+      apellidos,
+      correo,
       password,
-      rol
+      id_rol,
+      id_area
     });
 
     return res.status(201).json(result);
