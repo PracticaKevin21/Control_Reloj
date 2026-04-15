@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+const authRoutes = require('./routes/auth.routes');
+
 const app = express();
 
 // Middlewares globales
@@ -16,5 +18,8 @@ app.get('/', (req, res) => {
     mensaje: 'Backend funcionando correctamente'
   });
 });
+
+// Rutas
+app.use('/api/auth', authRoutes);
 
 module.exports = app;
