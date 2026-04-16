@@ -2,24 +2,27 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth.routes');
-
 const app = express();
 
-// Middlewares globales
+// 🔹 Middlewares globales
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Ruta de prueba
+// 🔹 Rutas
+const authRoutes = require('./routes/auth.routes');
+const usuariosRoutes = require('./routes/usuarios.routes');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+
+// 🔹 Ruta base
 app.get('/', (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: 'Backend funcionando correctamente'
-  });
+  res.send('API funcionando correctamente 🚀');
 });
 
-// Rutas
-app.use('/api/auth', authRoutes);
+// 🔹 Puerto
+const PORT = process.env.PORT || 3000;
 
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+});
