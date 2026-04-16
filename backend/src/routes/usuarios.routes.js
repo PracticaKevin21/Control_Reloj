@@ -3,18 +3,12 @@ const router = express.Router();
 
 const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
+const usuariosController = require('../controllers/usuarios.controller');
 
-// 🔹 GET /api/usuarios
-// Solo Administrador puede ver todos los usuarios
-router.get('/', verifyToken, checkRole('Administrador'), (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: 'Lista de usuarios (solo admin por ahora)'
-  });
-});
+// Solo administrador puede ver todos los usuarios
+router.get('/', verifyToken, checkRole('Administrador'), usuariosController.getUsuarios);
 
-// 🔹 GET /api/usuarios/mi-perfil
-// Cualquier usuario autenticado puede ver su info del token
+// Cualquier usuario autenticado puede ver su perfil desde el token
 router.get('/mi-perfil', verifyToken, (req, res) => {
   res.json({
     ok: true,
