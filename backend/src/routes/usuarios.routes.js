@@ -5,15 +5,18 @@ const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
 const usuariosController = require('../controllers/usuarios.controller');
 
-// Solo administrador puede ver todos los usuarios
-router.get('/', verifyToken, checkRole('Administrador'), usuariosController.getUsuarios);
-
-// Cualquier usuario autenticado puede ver su perfil desde el token
+// Perfil propio
 router.get('/mi-perfil', verifyToken, (req, res) => {
   res.json({
     ok: true,
     usuario: req.usuario
   });
 });
+
+// Todos los usuarios
+router.get('/', verifyToken, checkRole('Administrador'), usuariosController.getUsuarios);
+
+// Usuario por ID
+router.get('/:id', verifyToken, checkRole('Administrador'), usuariosController.getUsuarioById);
 
 module.exports = router;
