@@ -4,7 +4,7 @@ function checkRole(...rolesPermitidos) {
       if (!req.usuario) {
         return res.status(401).json({
           ok: false,
-          mensaje: 'Usuario no autenticado.'
+          mensaje: 'Usuario no autenticado'
         });
       }
 
@@ -13,7 +13,7 @@ function checkRole(...rolesPermitidos) {
       if (!rolesPermitidos.includes(rolUsuario)) {
         return res.status(403).json({
           ok: false,
-          mensaje: 'No tienes permisos para realizar esta acción.'
+          mensaje: 'No tienes permisos para realizar esta acción'
         });
       }
 
@@ -21,8 +21,7 @@ function checkRole(...rolesPermitidos) {
     } catch (error) {
       return res.status(500).json({
         ok: false,
-        mensaje: 'Error al validar el rol del usuario.',
-        error: error.message
+        mensaje: 'Error al validar rol'
       });
     }
   };

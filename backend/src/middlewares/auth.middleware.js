@@ -8,7 +8,7 @@ function verifyToken(req, res, next) {
     if (!authHeader) {
       return res.status(401).json({
         ok: false,
-        mensaje: 'Acceso denegado. No se proporcionó token.'
+        mensaje: 'Token no proporcionado'
       });
     }
 
@@ -17,7 +17,7 @@ function verifyToken(req, res, next) {
     if (parts.length !== 2) {
       return res.status(401).json({
         ok: false,
-        mensaje: 'Formato de token inválido.'
+        mensaje: 'Formato de token inválido'
       });
     }
 
@@ -26,19 +26,19 @@ function verifyToken(req, res, next) {
     if (scheme !== 'Bearer' || !token) {
       return res.status(401).json({
         ok: false,
-        mensaje: 'Token inválido.'
+        mensaje: 'Token inválido'
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.usuario = decoded;
+
     next();
   } catch (error) {
     return res.status(401).json({
       ok: false,
-      mensaje: 'Token expirado o inválido.',
-      error: error.message
+      mensaje: 'Token expirado o inválido'
     });
   }
 }
