@@ -1,4 +1,5 @@
 const authService = require('../services/auth.service');
+const { limpiarRut, validarRut } = require('../utils/helpers');
 
 const regexCorreoDEM = /^[a-zA-Z0-9._%+-]+@demovalle\.cl$/;
 
@@ -35,7 +36,7 @@ async function login(req, res) {
 // REGISTER
 async function register(req, res) {
   try {
-    const {
+    let {
       rut,
       nombres,
       apellidos,
@@ -50,6 +51,15 @@ async function register(req, res) {
       return res.status(400).json({
         ok: false,
         mensaje: 'Faltan campos obligatorios'
+      });
+    }
+
+    rut = limpiarRut(rut);
+
+    if (!validarRut(rut)) {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'El RUT ingresado no es válido. Debe tener formato xxxxxxxx-x sin puntos.'
       });
     }
 
