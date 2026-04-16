@@ -55,10 +55,28 @@ async function login(correo, password) {
   }
 }
 
-// REGISTER (adaptado a tu BD)
+// REGISTER
 async function register(data) {
   try {
-    const { nombres, apellidos, correo, password, id_rol, id_area } = data;
+    const {
+      rut,
+      nombres,
+      apellidos,
+      correo,
+      password,
+      id_rol,
+      id_area,
+      telefono
+    } = data;
+
+    const [existe] = await pool.query(
+      'SELECT id_usuario FROM usuarios WHERE correo = ? OR rut = ?',
+      [correo, rut]
+    );
+
+    if (existe.length > 0) {
+      throw new Error('Ya existe un usuario con ese correo o rut');
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -67,11 +85,11 @@ async function register(data) {
        (rut, nombres, apellidos, correo, telefono, password_hash, id_rol, id_area, estado, fecha_inicio)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVO', CURDATE())`,
       [
-        '11111111-1', // placeholder (puedes mejorar después)
+        rut,
         nombres,
         apellidos,
         correo,
-        null,
+        telefono || null,
         passwordHash,
         id_rol,
         id_area
