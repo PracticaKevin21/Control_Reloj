@@ -22,4 +22,7 @@ router.get('/:id', verifyToken, checkRole('Administrador'), usuariosController.g
 // Actualizar usuario
 router.put('/:id', verifyToken, checkRole('Administrador'), usuariosController.updateUsuario);
 
+// Desactivar usuario (borrado lógico)
+router.delete('/:id', verifyToken, checkRole('Administrador'), usuariosController.deleteUsuarioLogico);
+
 module.exports = router;

@@ -160,8 +160,52 @@ async function updateUsuario(req, res) {
   }
 }
 
+// Desactivación lógica
+async function deleteUsuarioLogico(req, res) {
+  try {
+    const { id } = req.params;
+
+    const [usuarioExiste] = await pool.query(
+      'SELECT id_usuario, estado FROM usuarios WHERE id_usuario = ?',
+      [id]
+    );
+
+    if (usuarioExiste.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        mensaje: 'Usuario no encontrado'
+      });
+    }
+
+    if (usuarioExiste[0].estado === 'INACTIVO') {
+      return res.status(400).json({
+        ok: false,
+        mensaje: 'El usuario ya está inactivo'
+      });
+    }
+
+    await pool.query(
+      `UPDATE usuarios
+       SET estado = 'INACTIVO'
+       WHERE id_usuario = ?`,
+      [id]
+    );
+
+    return res.status(200).json({
+      ok: true,
+      mensaje: 'Usuario desactivado correctamente'
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      mensaje: 'Error al desactivar usuario'
+    });
+  }
+}
+
 module.exports = {
   getUsuarios,
   getUsuarioById,
-  updateUsuario
+  updateUsuario,
+  deleteUsuarioLogico
 };
