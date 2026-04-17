@@ -19,4 +19,7 @@ router.get('/', verifyToken, checkRole('Administrador'), usuariosController.getU
 // Usuario por ID
 router.get('/:id', verifyToken, checkRole('Administrador'), usuariosController.getUsuarioById);
 
+// Actualizar usuario
+router.put('/:id', verifyToken, checkRole('Administrador'), usuariosController.updateUsuario);
+
 module.exports = router;
