@@ -13,6 +13,9 @@ router.get('/mi-perfil', verifyToken, (req, res) => {
   });
 });
 
+// Crear usuario
+router.post('/', verifyToken, checkRole('Administrador'), usuariosController.createUsuario);
+
 // Todos los usuarios
 router.get('/', verifyToken, checkRole('Administrador'), usuariosController.getUsuarios);
 
@@ -22,7 +25,7 @@ router.get('/:id', verifyToken, checkRole('Administrador'), usuariosController.g
 // Actualizar usuario
 router.put('/:id', verifyToken, checkRole('Administrador'), usuariosController.updateUsuario);
 
-// Desactivar usuario (borrado lógico)
+// Desactivar usuario
 router.delete('/:id', verifyToken, checkRole('Administrador'), usuariosController.deleteUsuarioLogico);
 
 module.exports = router;
