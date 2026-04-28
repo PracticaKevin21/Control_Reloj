@@ -74,11 +74,29 @@ async function createMarcacion(data) {
   }
 
   if (tipo !== 'ENTRADA' && tipo !== 'SALIDA') {
-    throw new Error('Tipo inválido');
+    throw new Error('Tipo inválido. Debe ser ENTRADA o SALIDA');
   }
 
   const origenFinal = origen || 'WEB';
-  const estadoFinal = estado || 'PENDIENTE';
+  const estadoFinal = estado || 'NORMAL';
+
+  const origenesValidos = ['ANDROID', 'WEB', 'RELOJ', 'QR'];
+  const estadosValidos = [
+    'NORMAL',
+    'TARDANZA',
+    'HORA_EXTRA',
+    'FUERA_HORARIO',
+    'INASISTENCIA',
+    'PENDIENTE'
+  ];
+
+  if (!origenesValidos.includes(origenFinal)) {
+    throw new Error('Origen inválido');
+  }
+
+  if (!estadosValidos.includes(estadoFinal)) {
+    throw new Error('Estado inválido');
+  }
 
   const [usuario] = await pool.query(
     `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND estado = 'ACTIVO'`,
@@ -106,7 +124,9 @@ async function createMarcacion(data) {
     ]
   );
 
-  return { id_marcacion: result.insertId };
+  return {
+    id_marcacion: result.insertId
+  };
 }
 
 // Actualizar marcación
@@ -120,6 +140,30 @@ async function updateMarcacion(id, data) {
   } = data;
 
   await getMarcacionById(id);
+
+  const estadosValidos = [
+    'NORMAL',
+    'TARDANZA',
+    'HORA_EXTRA',
+    'FUERA_HORARIO',
+    'INASISTENCIA',
+    'PENDIENTE'
+  ];
+
+  if (estado && !estadosValidos.includes(estado)) {
+    throw new Error('Estado inválido');
+  }
+
+  if (aprobado_por) {
+    const [aprobadorExiste] = await pool.query(
+      `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND estado = 'ACTIVO'`,
+      [aprobado_por]
+    );
+
+    if (aprobadorExiste.length === 0) {
+      throw new Error('El usuario aprobador no existe o está inactivo');
+    }
+  }
 
   await pool.query(
     `
