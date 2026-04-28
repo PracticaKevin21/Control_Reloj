@@ -1,12 +1,19 @@
 const express = require('express');
-
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: 'Ruta marcaciones funcionando'
-  });
-});
+const verifyToken = require('../middlewares/auth.middleware');
+const marcacionesController = require('../controllers/marcaciones.controller');
+
+// Listar marcaciones
+router.get('/', verifyToken, marcacionesController.getMarcaciones);
+
+// Obtener por ID
+router.get('/:id', verifyToken, marcacionesController.getMarcacionById);
+
+// Registrar marcación
+router.post('/', verifyToken, marcacionesController.createMarcacion);
+
+// Actualizar marcación
+router.put('/:id', verifyToken, marcacionesController.updateMarcacion);
 
 module.exports = router;
