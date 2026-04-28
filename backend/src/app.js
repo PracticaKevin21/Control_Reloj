@@ -7,6 +7,7 @@ const usuariosRoutes = require('./routes/usuarios.routes');
 const departamentosRoutes = require('./routes/departamentos.routes');
 const subdepartamentosRoutes = require('./routes/subdepartamentos.routes');
 const turnosRoutes = require('./routes/turnos.routes');
+const usuarioTurnosRoutes = require('./routes/usuario_turnos.routes'); // 👈 NUEVO
 const marcacionesRoutes = require('./routes/marcaciones.routes');
 const solicitudesRoutes = require('./routes/solicitudes.routes');
 const reportesRoutes = require('./routes/reportes.routes');
@@ -32,6 +33,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/departamentos', departamentosRoutes);
 app.use('/api/subdepartamentos', subdepartamentosRoutes);
 app.use('/api/turnos', turnosRoutes);
+app.use('/api/usuario-turnos', usuarioTurnosRoutes); // 👈 NUEVO
 app.use('/api/marcaciones', marcacionesRoutes);
 app.use('/api/solicitudes', solicitudesRoutes);
 app.use('/api/reportes', reportesRoutes);
