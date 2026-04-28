@@ -5,7 +5,7 @@ const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
 const turnosController = require('../controllers/turnos.controller');
 
-// Listar turnos
+// Listar turnos activos
 router.get('/', verifyToken, checkRole('Administrador'), turnosController.getTurnos);
 
 // Obtener turno por ID
@@ -17,7 +17,7 @@ router.post('/', verifyToken, checkRole('Administrador'), turnosController.creat
 // Actualizar turno
 router.put('/:id', verifyToken, checkRole('Administrador'), turnosController.updateTurno);
 
-// Eliminar turno
+// Desactivar turno (borrado lógico)
 router.delete('/:id', verifyToken, checkRole('Administrador'), turnosController.deleteTurno);
 
 module.exports = router;

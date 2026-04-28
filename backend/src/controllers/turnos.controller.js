@@ -1,5 +1,6 @@
 const turnosService = require('../services/turnos.service');
 
+// Obtener todos
 async function getTurnos(req, res) {
   try {
     const turnos = await turnosService.getTurnos();
@@ -11,12 +12,12 @@ async function getTurnos(req, res) {
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      mensaje: 'Error al obtener turnos',
-      error: error.message
+      mensaje: 'Error al obtener turnos'
     });
   }
 }
 
+// Obtener por ID
 async function getTurnoById(req, res) {
   try {
     const { id } = req.params;
@@ -35,6 +36,7 @@ async function getTurnoById(req, res) {
   }
 }
 
+// Crear
 async function createTurno(req, res) {
   try {
     const result = await turnosService.createTurno(req.body);
@@ -52,6 +54,7 @@ async function createTurno(req, res) {
   }
 }
 
+// Actualizar
 async function updateTurno(req, res) {
   try {
     const { id } = req.params;
@@ -70,6 +73,7 @@ async function updateTurno(req, res) {
   }
 }
 
+// Desactivar (borrado lógico)
 async function deleteTurno(req, res) {
   try {
     const { id } = req.params;
@@ -78,7 +82,7 @@ async function deleteTurno(req, res) {
 
     return res.status(200).json({
       ok: true,
-      mensaje: 'Turno eliminado correctamente'
+      mensaje: 'Turno desactivado correctamente'
     });
   } catch (error) {
     return res.status(400).json({

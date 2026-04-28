@@ -1,5 +1,6 @@
 const { pool } = require('../config/db');
 
+// Obtener todos (solo activos)
 async function getTurnos() {
   const [rows] = await pool.query(`
     SELECT 
@@ -8,14 +9,17 @@ async function getTurnos() {
       hora_entrada,
       hora_salida,
       tolerancia_minutos,
-      minutos_colacion
+      minutos_colacion,
+      estado
     FROM turnos
+    WHERE estado = 'ACTIVO'
     ORDER BY id_turno ASC
   `);
 
   return rows;
 }
 
+// Obtener por ID
 async function getTurnoById(id) {
   const [rows] = await pool.query(
     `
@@ -25,7 +29,8 @@ async function getTurnoById(id) {
       hora_entrada,
       hora_salida,
       tolerancia_minutos,
-      minutos_colacion
+      minutos_colacion,
+      estado
     FROM turnos
     WHERE id_turno = ?
     `,
@@ -39,6 +44,7 @@ async function getTurnoById(id) {
   return rows[0];
 }
 
+// Crear
 async function createTurno(data) {
   const {
     nombre,
@@ -49,14 +55,14 @@ async function createTurno(data) {
   } = data;
 
   if (!nombre || !hora_entrada || !hora_salida) {
-    throw new Error('Nombre, hora de entrada y hora de salida son obligatorios');
+    throw new Error('Nombre, hora de entrada y salida son obligatorios');
   }
 
   const [result] = await pool.query(
     `
     INSERT INTO turnos
-    (nombre, hora_entrada, hora_salida, tolerancia_minutos, minutos_colacion)
-    VALUES (?, ?, ?, ?, ?)
+    (nombre, hora_entrada, hora_salida, tolerancia_minutos, minutos_colacion, estado)
+    VALUES (?, ?, ?, ?, ?, 'ACTIVO')
     `,
     [
       nombre,
@@ -72,6 +78,7 @@ async function createTurno(data) {
   };
 }
 
+// Actualizar
 async function updateTurno(id, data) {
   const {
     nombre,
@@ -81,14 +88,10 @@ async function updateTurno(id, data) {
     minutos_colacion
   } = data;
 
-  const turnoActual = await getTurnoById(id);
-
-  if (!turnoActual) {
-    throw new Error('Turno no encontrado');
-  }
+  await getTurnoById(id);
 
   if (!nombre || !hora_entrada || !hora_salida) {
-    throw new Error('Nombre, hora de entrada y hora de salida son obligatorios');
+    throw new Error('Nombre, hora de entrada y salida son obligatorios');
   }
 
   await pool.query(
@@ -113,20 +116,25 @@ async function updateTurno(id, data) {
   );
 }
 
+// Borrado lógico
 async function deleteTurno(id) {
   await getTurnoById(id);
 
   const [asignaciones] = await pool.query(
-    'SELECT id_usuario_turno FROM usuario_turnos WHERE id_turno = ? LIMIT 1',
+    `SELECT id_usuario_turno FROM usuario_turnos WHERE id_turno = ? LIMIT 1`,
     [id]
   );
 
   if (asignaciones.length > 0) {
-    throw new Error('No se puede eliminar el turno porque está asignado a usuarios');
+    throw new Error('No se puede desactivar porque está asignado a usuarios');
   }
 
   await pool.query(
-    'DELETE FROM turnos WHERE id_turno = ?',
+    `
+    UPDATE turnos
+    SET estado = 'INACTIVO'
+    WHERE id_turno = ?
+    `,
     [id]
   );
 }
