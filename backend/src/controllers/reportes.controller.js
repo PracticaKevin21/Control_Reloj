@@ -69,9 +69,24 @@ async function updateReporte(req, res) {
   }
 }
 
+async function descargarPdfReporte(req, res) {
+  try {
+    const { id } = req.params;
+    const filePath = await reportesService.getReportePdfPath(id);
+
+    return res.download(filePath);
+  } catch (error) {
+    return res.status(404).json({
+      ok: false,
+      mensaje: error.message
+    });
+  }
+}
+
 module.exports = {
   getReportes,
   getReporteById,
   createReporte,
-  updateReporte
+  updateReporte,
+  descargarPdfReporte
 };

@@ -7,6 +7,8 @@ const reportesController = require('../controllers/reportes.controller');
 
 router.get('/', verifyToken, reportesController.getReportes);
 router.get('/:id', verifyToken, reportesController.getReporteById);
+router.get('/:id/pdf', verifyToken, reportesController.descargarPdfReporte);
+
 router.post('/', verifyToken, checkRole('Administrador'), reportesController.createReporte);
 router.put('/:id', verifyToken, checkRole('Administrador'), reportesController.updateReporte);
 

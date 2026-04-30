@@ -1,4 +1,7 @@
 const { pool } = require('../config/db');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 const tiposValidos = ['DIARIO', 'SEMANAL', 'MENSUAL', 'PERSONALIZADO'];
 
@@ -63,6 +66,46 @@ async function getReporteById(id) {
   return rows[0];
 }
 
+async function crearPdfReporte(data, archivoPdf) {
+  const carpetaReportes = path.join(__dirname, '../../reportes');
+
+  if (!fs.existsSync(carpetaReportes)) {
+    fs.mkdirSync(carpetaReportes);
+  }
+
+  const rutaCompleta = path.join(__dirname, '../../', archivoPdf);
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument();
+    const stream = fs.createWriteStream(rutaCompleta);
+
+    doc.pipe(stream);
+
+    doc.fontSize(18).text('Reporte de Asistencia', { align: 'center' });
+    doc.moveDown();
+
+    doc.fontSize(12).text(`Usuario: ${data.usuario}`);
+    doc.text(`Generado por: ${data.generado_por}`);
+    doc.text(`Tipo: ${data.tipo}`);
+    doc.text(`Periodo: ${data.fecha_desde} al ${data.fecha_hasta}`);
+    doc.moveDown();
+
+    doc.text(`Total marcaciones: ${data.total_marcaciones}`);
+    doc.text(`Total atrasos: ${data.total_atrasos}`);
+    doc.text(`Total horas extra (minutos): ${data.total_horas_extra_minutos}`);
+    doc.text(`Total inasistencias: ${data.total_inasistencias}`);
+    doc.text(`Total solicitudes: ${data.total_solicitudes}`);
+    doc.moveDown();
+
+    doc.text(`Observación: ${data.observacion || 'Sin observación'}`);
+
+    doc.end();
+
+    stream.on('finish', resolve);
+    stream.on('error', reject);
+  });
+}
+
 async function createReporte(data) {
   const {
     id_usuario,
@@ -81,23 +124,26 @@ async function createReporte(data) {
     throw new Error('Tipo de reporte inválido');
   }
 
-  const [usuarioExiste] = await pool.query(
-    `SELECT id_usuario FROM usuarios WHERE id_usuario = ?`,
+  const [usuarioRows] = await pool.query(
+    `SELECT id_usuario, nombres, apellidos FROM usuarios WHERE id_usuario = ?`,
     [id_usuario]
   );
 
-  if (usuarioExiste.length === 0) {
+  if (usuarioRows.length === 0) {
     throw new Error('El usuario indicado no existe');
   }
 
-  const [generadorExiste] = await pool.query(
-    `SELECT id_usuario FROM usuarios WHERE id_usuario = ?`,
+  const [generadorRows] = await pool.query(
+    `SELECT id_usuario, nombres, apellidos FROM usuarios WHERE id_usuario = ?`,
     [generado_por]
   );
 
-  if (generadorExiste.length === 0) {
+  if (generadorRows.length === 0) {
     throw new Error('El usuario generador no existe');
   }
+
+  const usuarioNombre = `${usuarioRows[0].nombres} ${usuarioRows[0].apellidos}`;
+  const generadoPorNombre = `${generadorRows[0].nombres} ${generadorRows[0].apellidos}`;
 
   const [[marcaciones]] = await pool.query(
     `
@@ -145,11 +191,26 @@ async function createReporte(data) {
   const totalAtrasos = atrasos.total || 0;
   const totalInasistencias = inasistencias.total || 0;
   const totalSolicitudes = solicitudes.total || 0;
-
-  // Por ahora queda en 0 porque no existe una columna real de minutos de hora extra.
   const totalHorasExtraMinutos = 0;
 
   const archivoPdf = `reportes/reporte_usuario_${id_usuario}_${fecha_desde}_${fecha_hasta}.pdf`;
+
+  await crearPdfReporte(
+    {
+      usuario: usuarioNombre,
+      generado_por: generadoPorNombre,
+      tipo,
+      fecha_desde,
+      fecha_hasta,
+      total_marcaciones: totalMarcaciones,
+      total_atrasos: totalAtrasos,
+      total_horas_extra_minutos: totalHorasExtraMinutos,
+      total_inasistencias: totalInasistencias,
+      total_solicitudes: totalSolicitudes,
+      observacion
+    },
+    archivoPdf
+  );
 
   const [result] = await pool.query(
     `
@@ -209,9 +270,26 @@ async function updateReporte(id, data) {
   );
 }
 
+async function getReportePdfPath(id) {
+  const reporte = await getReporteById(id);
+
+  if (!reporte.archivo_pdf) {
+    throw new Error('Este reporte no tiene PDF asociado');
+  }
+
+  const filePath = path.join(__dirname, '../../', reporte.archivo_pdf);
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error('El archivo PDF no existe en el servidor');
+  }
+
+  return filePath;
+}
+
 module.exports = {
   getReportes,
   getReporteById,
   createReporte,
-  updateReporte
+  updateReporte,
+  getReportePdfPath
 };
