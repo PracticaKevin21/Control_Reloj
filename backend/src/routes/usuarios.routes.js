@@ -3,6 +3,7 @@ const router = express.Router();
 
 const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
+const applyScope = require('../middlewares/scope.middleware');
 const usuariosController = require('../controllers/usuarios.controller');
 
 // Perfil propio
@@ -13,19 +14,37 @@ router.get('/mi-perfil', verifyToken, (req, res) => {
   });
 });
 
-// Crear usuario
-router.post('/', verifyToken, checkRole('Administrador'), usuariosController.createUsuario);
+// Listar usuarios según alcance
+router.get('/', verifyToken, applyScope, usuariosController.getUsuarios);
 
-// Todos los usuarios
-router.get('/', verifyToken, checkRole('Administrador'), usuariosController.getUsuarios);
+// Obtener usuario por ID según alcance
+router.get('/:id', verifyToken, applyScope, usuariosController.getUsuarioById);
 
-// Usuario por ID
-router.get('/:id', verifyToken, checkRole('Administrador'), usuariosController.getUsuarioById);
+// Crear usuario según rol
+router.post(
+  '/',
+  verifyToken,
+  applyScope,
+  checkRole('SuperAdmin', 'Administrador', 'Jefatura'),
+  usuariosController.createUsuario
+);
 
-// Actualizar usuario
-router.put('/:id', verifyToken, checkRole('Administrador'), usuariosController.updateUsuario);
+// Actualizar usuario según rol
+router.put(
+  '/:id',
+  verifyToken,
+  applyScope,
+  checkRole('SuperAdmin', 'Administrador', 'Jefatura'),
+  usuariosController.updateUsuario
+);
 
-// Desactivar usuario
-router.delete('/:id', verifyToken, checkRole('Administrador'), usuariosController.deleteUsuarioLogico);
+// Desactivar usuario según rol
+router.delete(
+  '/:id',
+  verifyToken,
+  applyScope,
+  checkRole('SuperAdmin', 'Administrador', 'Jefatura'),
+  usuariosController.deleteUsuarioLogico
+);
 
 module.exports = router;
