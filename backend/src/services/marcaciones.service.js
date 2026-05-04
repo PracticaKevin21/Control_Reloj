@@ -1,38 +1,24 @@
 const { pool } = require('../config/db');
 
-// Obtener todas
-async function getMarcaciones() {
-  const [rows] = await pool.query(`
-    SELECT 
-      m.id_marcacion,
-      CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
-      m.fecha,
-      m.hora,
-      m.tipo,
-      m.origen,
-      m.estado,
-      m.observacion,
-      m.ubicacion,
-      m.requiere_aprobacion,
-      CONCAT(a.nombres, ' ', a.apellidos) AS aprobado_por,
-      m.fecha_aprobacion
-    FROM marcaciones m
-    JOIN usuarios u ON m.id_usuario = u.id_usuario
-    LEFT JOIN usuarios a ON m.aprobado_por = a.id_usuario
-    ORDER BY m.fecha DESC, m.hora DESC
-  `);
+const origenesValidos = ['ANDROID', 'WEB', 'RELOJ', 'QR'];
 
-  return rows;
-}
+const estadosValidos = [
+  'NORMAL',
+  'TARDANZA',
+  'HORA_EXTRA',
+  'FUERA_HORARIO',
+  'INASISTENCIA',
+  'PENDIENTE'
+];
 
-// Obtener por ID
-async function getMarcacionById(id) {
-  const [rows] = await pool.query(
-    `
+function selectMarcacionesBase() {
+  return `
     SELECT 
       m.id_marcacion,
       m.id_usuario,
       CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
+      d.nombre AS departamento,
+      sd.nombre AS subdepartamento,
       m.fecha,
       m.hora,
       m.tipo,
@@ -42,23 +28,128 @@ async function getMarcacionById(id) {
       m.ubicacion,
       m.requiere_aprobacion,
       m.aprobado_por,
+      CONCAT(a.nombres, ' ', a.apellidos) AS aprobado_por_nombre,
       m.fecha_aprobacion
     FROM marcaciones m
     JOIN usuarios u ON m.id_usuario = u.id_usuario
-    WHERE m.id_marcacion = ?
+    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
+    LEFT JOIN departamentos d ON sd.id_departamento = d.id_departamento
+    LEFT JOIN usuarios a ON m.aprobado_por = a.id_usuario
+  `;
+}
+
+function aplicarFiltroScope(scope, usarWhere = true) {
+  const inicio = usarWhere ? 'WHERE' : 'AND';
+
+  if (!scope || scope.tipo === 'global') {
+    return {
+      sql: '',
+      params: []
+    };
+  }
+
+  if (scope.tipo === 'departamento') {
+    return {
+      sql: `${inicio} sd.id_departamento = ?`,
+      params: [scope.id_departamento]
+    };
+  }
+
+  if (scope.tipo === 'subdepartamento') {
+    return {
+      sql: `${inicio} u.id_subdepartamento = ?`,
+      params: [scope.id_subdepartamento]
+    };
+  }
+
+  if (scope.tipo === 'propio') {
+    return {
+      sql: `${inicio} m.id_usuario = ?`,
+      params: [scope.id_usuario]
+    };
+  }
+
+  throw new Error('Scope inválido');
+}
+
+async function getUsuarioConDepartamento(id_usuario) {
+  const [rows] = await pool.query(
+    `
+    SELECT 
+      u.id_usuario,
+      u.estado,
+      u.id_subdepartamento,
+      sd.id_departamento
+    FROM usuarios u
+    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
+    WHERE u.id_usuario = ?
     `,
-    [id]
+    [id_usuario]
   );
 
   if (rows.length === 0) {
-    throw new Error('Marcación no encontrada');
+    throw new Error('Usuario no encontrado');
+  }
+
+  return rows[0];
+}
+
+function validarPermisoSobreUsuario(usuario, scope) {
+  if (!scope || scope.tipo === 'global') return true;
+
+  if (scope.tipo === 'departamento') {
+    return usuario.id_departamento === scope.id_departamento;
+  }
+
+  if (scope.tipo === 'subdepartamento') {
+    return usuario.id_subdepartamento === scope.id_subdepartamento;
+  }
+
+  if (scope.tipo === 'propio') {
+    return usuario.id_usuario === scope.id_usuario;
+  }
+
+  return false;
+}
+
+// Obtener todas según alcance
+async function getMarcaciones(scope) {
+  const filtro = aplicarFiltroScope(scope);
+
+  const [rows] = await pool.query(
+    `
+    ${selectMarcacionesBase()}
+    ${filtro.sql}
+    ORDER BY m.fecha DESC, m.hora DESC
+    `,
+    filtro.params
+  );
+
+  return rows;
+}
+
+// Obtener por ID según alcance
+async function getMarcacionById(id, scope) {
+  const filtro = aplicarFiltroScope(scope, false);
+
+  const [rows] = await pool.query(
+    `
+    ${selectMarcacionesBase()}
+    WHERE m.id_marcacion = ?
+    ${filtro.sql}
+    `,
+    [id, ...filtro.params]
+  );
+
+  if (rows.length === 0) {
+    throw new Error('Marcación no encontrada o sin permisos');
   }
 
   return rows[0];
 }
 
 // Crear marcación
-async function createMarcacion(data) {
+async function createMarcacion(data, usuarioActual, scope) {
   const {
     id_usuario,
     tipo,
@@ -69,8 +160,8 @@ async function createMarcacion(data) {
     requiere_aprobacion
   } = data;
 
-  if (!id_usuario || !tipo) {
-    throw new Error('Faltan datos obligatorios');
+  if (!tipo) {
+    throw new Error('El tipo de marcación es obligatorio');
   }
 
   if (tipo !== 'ENTRADA' && tipo !== 'SALIDA') {
@@ -80,16 +171,6 @@ async function createMarcacion(data) {
   const origenFinal = origen || 'WEB';
   const estadoFinal = estado || 'NORMAL';
 
-  const origenesValidos = ['ANDROID', 'WEB', 'RELOJ', 'QR'];
-  const estadosValidos = [
-    'NORMAL',
-    'TARDANZA',
-    'HORA_EXTRA',
-    'FUERA_HORARIO',
-    'INASISTENCIA',
-    'PENDIENTE'
-  ];
-
   if (!origenesValidos.includes(origenFinal)) {
     throw new Error('Origen inválido');
   }
@@ -98,23 +179,45 @@ async function createMarcacion(data) {
     throw new Error('Estado inválido');
   }
 
-  const [usuario] = await pool.query(
-    `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND estado = 'ACTIVO'`,
-    [id_usuario]
-  );
+  let idUsuarioMarcacion = id_usuario;
 
-  if (usuario.length === 0) {
-    throw new Error('Usuario no válido');
+  // Funcionario siempre marca para sí mismo
+  if (scope.tipo === 'propio') {
+    idUsuarioMarcacion = usuarioActual.id_usuario;
+  }
+
+  if (!idUsuarioMarcacion) {
+    throw new Error('Debe indicar el usuario de la marcación');
+  }
+
+  const usuarioMarcacion = await getUsuarioConDepartamento(idUsuarioMarcacion);
+
+  if (usuarioMarcacion.estado !== 'ACTIVO') {
+    throw new Error('El usuario no está activo');
+  }
+
+  if (!validarPermisoSobreUsuario(usuarioMarcacion, scope)) {
+    throw new Error('No tienes permisos para registrar marcaciones de este usuario');
   }
 
   const [result] = await pool.query(
     `
     INSERT INTO marcaciones
-    (id_usuario, fecha, hora, tipo, origen, estado, observacion, ubicacion, requiere_aprobacion)
+    (
+      id_usuario,
+      fecha,
+      hora,
+      tipo,
+      origen,
+      estado,
+      observacion,
+      ubicacion,
+      requiere_aprobacion
+    )
     VALUES (?, CURDATE(), CURTIME(), ?, ?, ?, ?, ?, ?)
     `,
     [
-      id_usuario,
+      idUsuarioMarcacion,
       tipo,
       origenFinal,
       estadoFinal,
@@ -129,8 +232,10 @@ async function createMarcacion(data) {
   };
 }
 
-// Actualizar marcación
-async function updateMarcacion(id, data) {
+// Actualizar marcación según alcance
+async function updateMarcacion(id, data, scope) {
+  await getMarcacionById(id, scope);
+
   const {
     estado,
     observacion,
@@ -139,29 +244,15 @@ async function updateMarcacion(id, data) {
     aprobado_por
   } = data;
 
-  await getMarcacionById(id);
-
-  const estadosValidos = [
-    'NORMAL',
-    'TARDANZA',
-    'HORA_EXTRA',
-    'FUERA_HORARIO',
-    'INASISTENCIA',
-    'PENDIENTE'
-  ];
-
   if (estado && !estadosValidos.includes(estado)) {
     throw new Error('Estado inválido');
   }
 
   if (aprobado_por) {
-    const [aprobadorExiste] = await pool.query(
-      `SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND estado = 'ACTIVO'`,
-      [aprobado_por]
-    );
+    const aprobador = await getUsuarioConDepartamento(aprobado_por);
 
-    if (aprobadorExiste.length === 0) {
-      throw new Error('El usuario aprobador no existe o está inactivo');
+    if (aprobador.estado !== 'ACTIVO') {
+      throw new Error('El usuario aprobador no está activo');
     }
   }
 
