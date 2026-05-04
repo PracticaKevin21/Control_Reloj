@@ -5,19 +5,39 @@ const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
 const turnosController = require('../controllers/turnos.controller');
 
-// Listar turnos activos
-router.get('/', verifyToken, checkRole('Administrador'), turnosController.getTurnos);
+router.get(
+  '/',
+  verifyToken,
+  checkRole('SuperAdmin', 'Administrador'),
+  turnosController.getTurnos
+);
 
-// Obtener turno por ID
-router.get('/:id', verifyToken, checkRole('Administrador'), turnosController.getTurnoById);
+router.get(
+  '/:id',
+  verifyToken,
+  checkRole('SuperAdmin', 'Administrador'),
+  turnosController.getTurnoById
+);
 
-// Crear turno
-router.post('/', verifyToken, checkRole('Administrador'), turnosController.createTurno);
+router.post(
+  '/',
+  verifyToken,
+  checkRole('SuperAdmin', 'Administrador'),
+  turnosController.createTurno
+);
 
-// Actualizar turno
-router.put('/:id', verifyToken, checkRole('Administrador'), turnosController.updateTurno);
+router.put(
+  '/:id',
+  verifyToken,
+  checkRole('SuperAdmin', 'Administrador'),
+  turnosController.updateTurno
+);
 
-// Desactivar turno (borrado lógico)
-router.delete('/:id', verifyToken, checkRole('Administrador'), turnosController.deleteTurno);
+router.delete(
+  '/:id',
+  verifyToken,
+  checkRole('SuperAdmin', 'Administrador'),
+  turnosController.deleteTurno
+);
 
 module.exports = router;

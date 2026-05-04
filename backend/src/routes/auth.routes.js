@@ -6,9 +6,9 @@ const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
 
 router.post('/login', authController.login);
+
 router.post('/register', authController.register);
 
-// Ruta protegida: cualquier usuario con token válido
 router.get('/perfil', verifyToken, (req, res) => {
   res.json({
     ok: true,
@@ -17,12 +17,16 @@ router.get('/perfil', verifyToken, (req, res) => {
   });
 });
 
-// Ruta protegida: solo administrador
-router.get('/admin', verifyToken, checkRole('Administrador'), (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: 'Bienvenido, Administrador'
-  });
-});
+router.get(
+  '/admin',
+  verifyToken,
+  checkRole('SuperAdmin', 'Administrador'),
+  (req, res) => {
+    res.json({
+      ok: true,
+      mensaje: 'Bienvenido, usuario con permisos administrativos'
+    });
+  }
+);
 
 module.exports = router;
