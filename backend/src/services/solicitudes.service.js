@@ -8,6 +8,8 @@ function selectSolicitudesBase() {
       CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
       d.nombre AS departamento,
       sd.nombre AS subdepartamento,
+      sd.id_departamento,
+      u.id_subdepartamento,
       s.id_marcacion,
       s.motivo,
       s.estado,
@@ -98,6 +100,50 @@ function validarPermisoSobreUsuario(usuario, scope) {
   return false;
 }
 
+function validarPermisoRevisionSolicitud(solicitud, usuarioActual, scope) {
+  if (
+    usuarioActual.rol !== 'SuperAdmin' &&
+    usuarioActual.rol !== 'Administrador' &&
+    usuarioActual.rol !== 'Jefatura'
+  ) {
+    throw new Error('No tienes permisos para revisar solicitudes');
+  }
+
+  if (usuarioActual.id_usuario === solicitud.id_usuario) {
+    throw new Error('No puedes revisar tu propia solicitud');
+  }
+
+  if (usuarioActual.rol === 'SuperAdmin') {
+    return true;
+  }
+
+  if (usuarioActual.rol === 'Administrador') {
+    if (scope.tipo !== 'departamento') {
+      throw new Error('Administrador sin departamento asignado');
+    }
+
+    if (solicitud.id_departamento !== scope.id_departamento) {
+      throw new Error('No puedes revisar solicitudes fuera de tu departamento');
+    }
+
+    return true;
+  }
+
+  if (usuarioActual.rol === 'Jefatura') {
+    if (scope.tipo !== 'subdepartamento') {
+      throw new Error('Jefatura sin subdepartamento asignado');
+    }
+
+    if (solicitud.id_subdepartamento !== scope.id_subdepartamento) {
+      throw new Error('No puedes revisar solicitudes fuera de tu subdepartamento');
+    }
+
+    return true;
+  }
+
+  throw new Error('No tienes permisos para revisar esta solicitud');
+}
+
 async function getSolicitudes(scope) {
   const filtro = aplicarFiltroScope(scope);
 
@@ -141,7 +187,6 @@ async function createSolicitud(data, usuarioActual, scope) {
 
   let idUsuarioSolicitud = id_usuario;
 
-  // Funcionario siempre crea solicitud para sí mismo
   if (scope.tipo === 'propio') {
     idUsuarioSolicitud = usuarioActual.id_usuario;
   }
@@ -208,7 +253,8 @@ async function updateSolicitud(id, data, usuarioActual, scope) {
     throw new Error('La solicitud ya fue revisada');
   }
 
-  // Quien revisa es siempre el usuario logueado
+  validarPermisoRevisionSolicitud(solicitud, usuarioActual, scope);
+
   const revisadoPor = usuarioActual.id_usuario;
 
   await pool.query(
