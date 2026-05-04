@@ -2,16 +2,17 @@ const solicitudesService = require('../services/solicitudes.service');
 
 async function getSolicitudes(req, res) {
   try {
-    const data = await solicitudesService.getSolicitudes();
+    const solicitudes = await solicitudesService.getSolicitudes(req.scope);
 
     return res.json({
       ok: true,
-      solicitudes: data
+      solicitudes
     });
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      mensaje: 'Error al obtener solicitudes'
+      mensaje: 'Error al obtener solicitudes',
+      error: error.message
     });
   }
 }
@@ -20,11 +21,11 @@ async function getSolicitudById(req, res) {
   try {
     const { id } = req.params;
 
-    const data = await solicitudesService.getSolicitudById(id);
+    const solicitud = await solicitudesService.getSolicitudById(id, req.scope);
 
     return res.json({
       ok: true,
-      solicitud: data
+      solicitud
     });
   } catch (error) {
     return res.status(404).json({
@@ -36,7 +37,11 @@ async function getSolicitudById(req, res) {
 
 async function createSolicitud(req, res) {
   try {
-    const result = await solicitudesService.createSolicitud(req.body);
+    const result = await solicitudesService.createSolicitud(
+      req.body,
+      req.usuario,
+      req.scope
+    );
 
     return res.status(201).json({
       ok: true,
@@ -55,7 +60,12 @@ async function updateSolicitud(req, res) {
   try {
     const { id } = req.params;
 
-    await solicitudesService.updateSolicitud(id, req.body);
+    await solicitudesService.updateSolicitud(
+      id,
+      req.body,
+      req.usuario,
+      req.scope
+    );
 
     return res.json({
       ok: true,
