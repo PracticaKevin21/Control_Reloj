@@ -5,8 +5,44 @@ const path = require('path');
 
 const tiposValidos = ['DIARIO', 'SEMANAL', 'MENSUAL', 'PERSONALIZADO'];
 
-async function getReportes() {
-  const [rows] = await pool.query(`
+// 🔹 FILTRO SCOPE
+function aplicarFiltroScope(scope, usarWhere = true) {
+  const inicio = usarWhere ? 'WHERE' : 'AND';
+
+  if (!scope || scope.tipo === 'global') {
+    return { sql: '', params: [] };
+  }
+
+  if (scope.tipo === 'departamento') {
+    return {
+      sql: `${inicio} sd.id_departamento = ?`,
+      params: [scope.id_departamento]
+    };
+  }
+
+  if (scope.tipo === 'subdepartamento') {
+    return {
+      sql: `${inicio} u.id_subdepartamento = ?`,
+      params: [scope.id_subdepartamento]
+    };
+  }
+
+  if (scope.tipo === 'propio') {
+    return {
+      sql: `${inicio} r.id_usuario = ?`,
+      params: [scope.id_usuario]
+    };
+  }
+
+  throw new Error('Scope inválido');
+}
+
+// 🔹 LISTAR
+async function getReportes(scope) {
+  const filtro = aplicarFiltroScope(scope);
+
+  const [rows] = await pool.query(
+    `
     SELECT 
       r.id_reporte,
       CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
@@ -21,205 +57,96 @@ async function getReportes() {
       r.total_solicitudes,
       r.observacion,
       r.archivo_pdf,
-      r.fecha_generacion
+      r.fecha_generacion,
+      sd.id_departamento,
+      u.id_subdepartamento,
+      r.id_usuario
     FROM reportes r
     JOIN usuarios u ON r.id_usuario = u.id_usuario
+    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
     JOIN usuarios g ON r.generado_por = g.id_usuario
+    ${filtro.sql}
     ORDER BY r.fecha_generacion DESC
-  `);
+    `,
+    filtro.params
+  );
 
   return rows;
 }
 
-async function getReporteById(id) {
+// 🔹 OBTENER POR ID
+async function getReporteById(id, scope) {
+  const filtro = aplicarFiltroScope(scope, false);
+
   const [rows] = await pool.query(
     `
     SELECT 
       r.*,
-      CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
-      CONCAT(g.nombres, ' ', g.apellidos) AS generado_por_nombre
+      sd.id_departamento,
+      u.id_subdepartamento,
+      r.id_usuario
     FROM reportes r
     JOIN usuarios u ON r.id_usuario = u.id_usuario
-    JOIN usuarios g ON r.generado_por = g.id_usuario
+    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
     WHERE r.id_reporte = ?
+    ${filtro.sql}
     `,
-    [id]
+    [id, ...filtro.params]
   );
 
   if (rows.length === 0) {
-    throw new Error('Reporte no encontrado');
+    throw new Error('Reporte no encontrado o sin permisos');
   }
 
   return rows[0];
 }
 
-async function crearPdfReporte(data, archivoPdf) {
-  const rutaCompleta = path.join(__dirname, '../../', archivoPdf);
-
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const stream = fs.createWriteStream(rutaCompleta);
-
-    doc.pipe(stream);
-
-    // 🔵 TÍTULO
-    doc
-      .fontSize(20)
-      .text('REPORTE DE ASISTENCIA', { align: 'center' });
-
-    doc.moveDown(1);
-
-    // Línea
-    doc
-      .moveTo(50, doc.y)
-      .lineTo(550, doc.y)
-      .stroke();
-
-    doc.moveDown(1.5);
-
-    // 🔵 DATOS GENERALES
-    doc.fontSize(12);
-
-    doc.text(`Usuario: ${data.usuario}`);
-    doc.text(`Generado por: ${data.generado_por}`);
-    doc.text(`Tipo: ${data.tipo}`);
-    doc.text(`Periodo: ${data.fecha_desde} al ${data.fecha_hasta}`);
-
-    doc.moveDown(1.5);
-
-    // Línea
-    doc
-      .moveTo(50, doc.y)
-      .lineTo(550, doc.y)
-      .stroke();
-
-    doc.moveDown(1.5);
-
-    // 🔵 RESUMEN
-    doc.fontSize(14).text('RESUMEN', { underline: true });
-    doc.moveDown(0.5);
-
-    doc.fontSize(12);
-
-    doc.text(`Total marcaciones: ${data.total_marcaciones}`);
-    doc.text(`Total atrasos: ${data.total_atrasos}`);
-    doc.text(`Total horas extra (min): ${data.total_horas_extra_minutos}`);
-    doc.text(`Total inasistencias: ${data.total_inasistencias}`);
-    doc.text(`Total solicitudes: ${data.total_solicitudes}`);
-
-    doc.moveDown(1.5);
-
-    // Línea
-    doc
-      .moveTo(50, doc.y)
-      .lineTo(550, doc.y)
-      .stroke();
-
-    doc.moveDown(1.5);
-
-    // 🔵 OBSERVACIÓN
-    doc.fontSize(14).text('OBSERVACIÓN', { underline: true });
-    doc.moveDown(0.5);
-
-    doc.fontSize(12).text(
-      data.observacion || 'Sin observación',
-      {
-        align: 'justify'
-      }
-    );
-
-    doc.moveDown(2);
-
-    // 🔵 FECHA GENERACIÓN
-    const fechaActual = new Date().toLocaleString();
-
-    doc.fontSize(10).text(`Generado el: ${fechaActual}`, {
-      align: 'right'
-    });
-
-    doc.end();
-
-    stream.on('finish', resolve);
-    stream.on('error', reject);
-  });
-}
-
-async function createReporte(data) {
+// 🔹 CREAR
+async function createReporte(data, usuarioActual, scope) {
   const {
     id_usuario,
-    generado_por,
     tipo,
     fecha_desde,
     fecha_hasta,
     observacion
   } = data;
 
-  if (!id_usuario || !generado_por || !tipo || !fecha_desde || !fecha_hasta) {
+  if (!id_usuario || !tipo || !fecha_desde || !fecha_hasta) {
     throw new Error('Faltan campos obligatorios');
   }
 
   if (!tiposValidos.includes(tipo)) {
-    throw new Error('Tipo de reporte inválido');
+    throw new Error('Tipo inválido');
   }
 
-  const [usuarioRows] = await pool.query(
-    `SELECT nombres, apellidos FROM usuarios WHERE id_usuario = ?`,
+  // 🔹 VALIDAR SCOPE
+  const [userRows] = await pool.query(
+    `SELECT id_subdepartamento FROM usuarios WHERE id_usuario = ?`,
     [id_usuario]
   );
 
-  const [generadorRows] = await pool.query(
-    `SELECT nombres, apellidos FROM usuarios WHERE id_usuario = ?`,
-    [generado_por]
-  );
+  if (userRows.length === 0) {
+    throw new Error('Usuario no existe');
+  }
 
-  const usuarioNombre = `${usuarioRows[0].nombres} ${usuarioRows[0].apellidos}`;
-  const generadoPorNombre = `${generadorRows[0].nombres} ${generadorRows[0].apellidos}`;
+  // (simple validación)
+  if (scope.tipo === 'propio' && usuarioActual.id_usuario !== id_usuario) {
+    throw new Error('No puedes generar reportes de otros usuarios');
+  }
 
-  const [[marcaciones]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM marcaciones 
-     WHERE id_usuario = ? AND fecha BETWEEN ? AND ?`,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
+  const archivoPdf = `reportes/reporte_${Date.now()}.pdf`;
 
-  const [[atrasos]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM marcaciones 
-     WHERE id_usuario = ? AND estado = 'TARDANZA'
-     AND fecha BETWEEN ? AND ?`,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
+  // PDF simple
+  const rutaCompleta = path.join(__dirname, '../../', archivoPdf);
+  const doc = new PDFDocument();
+  doc.pipe(fs.createWriteStream(rutaCompleta));
 
-  const [[inasistencias]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM marcaciones 
-     WHERE id_usuario = ? AND estado = 'INASISTENCIA'
-     AND fecha BETWEEN ? AND ?`,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
+  doc.text('REPORTE DE ASISTENCIA');
+  doc.text(`Usuario ID: ${id_usuario}`);
+  doc.text(`Periodo: ${fecha_desde} - ${fecha_hasta}`);
+  doc.text(`Observación: ${observacion || 'Sin observación'}`);
 
-  const [[solicitudes]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM solicitudes 
-     WHERE id_usuario = ? 
-     AND DATE(fecha_solicitud) BETWEEN ? AND ?`,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
-
-  const archivoPdf = `reportes/reporte_usuario_${id_usuario}_${fecha_desde}_${fecha_hasta}.pdf`;
-
-  await crearPdfReporte(
-    {
-      usuario: usuarioNombre,
-      generado_por: generadoPorNombre,
-      tipo,
-      fecha_desde,
-      fecha_hasta,
-      total_marcaciones: marcaciones.total,
-      total_atrasos: atrasos.total,
-      total_horas_extra_minutos: 0,
-      total_inasistencias: inasistencias.total,
-      total_solicitudes: solicitudes.total,
-      observacion
-    },
-    archivoPdf
-  );
+  doc.end();
 
   const [result] = await pool.query(
     `
@@ -237,19 +164,14 @@ async function createReporte(data) {
       observacion,
       archivo_pdf
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?)
     `,
     [
       id_usuario,
-      generado_por,
+      usuarioActual.id_usuario,
       tipo,
       fecha_desde,
       fecha_hasta,
-      marcaciones.total,
-      atrasos.total,
-      0,
-      inasistencias.total,
-      solicitudes.total,
       observacion,
       archivoPdf
     ]
@@ -261,8 +183,9 @@ async function createReporte(data) {
   };
 }
 
-async function updateReporte(id, data) {
-  await getReporteById(id);
+// 🔹 UPDATE
+async function updateReporte(id, data, scope) {
+  await getReporteById(id, scope);
 
   await pool.query(
     `UPDATE reportes SET observacion = ? WHERE id_reporte = ?`,
@@ -270,8 +193,9 @@ async function updateReporte(id, data) {
   );
 }
 
-async function getReportePdfPath(id) {
-  const reporte = await getReporteById(id);
+// 🔹 PDF
+async function getReportePdfPath(id, scope) {
+  const reporte = await getReporteById(id, scope);
   return path.join(__dirname, '../../', reporte.archivo_pdf);
 }
 

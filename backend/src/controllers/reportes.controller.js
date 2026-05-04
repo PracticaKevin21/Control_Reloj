@@ -2,7 +2,7 @@ const reportesService = require('../services/reportes.service');
 
 async function getReportes(req, res) {
   try {
-    const reportes = await reportesService.getReportes();
+    const reportes = await reportesService.getReportes(req.scope);
 
     return res.json({
       ok: true,
@@ -11,7 +11,8 @@ async function getReportes(req, res) {
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      mensaje: 'Error al obtener reportes'
+      mensaje: 'Error al obtener reportes',
+      error: error.message
     });
   }
 }
@@ -19,7 +20,8 @@ async function getReportes(req, res) {
 async function getReporteById(req, res) {
   try {
     const { id } = req.params;
-    const reporte = await reportesService.getReporteById(id);
+
+    const reporte = await reportesService.getReporteById(id, req.scope);
 
     return res.json({
       ok: true,
@@ -35,7 +37,11 @@ async function getReporteById(req, res) {
 
 async function createReporte(req, res) {
   try {
-    const result = await reportesService.createReporte(req.body);
+    const result = await reportesService.createReporte(
+      req.body,
+      req.usuario,
+      req.scope
+    );
 
     return res.status(201).json({
       ok: true,
@@ -55,7 +61,7 @@ async function updateReporte(req, res) {
   try {
     const { id } = req.params;
 
-    await reportesService.updateReporte(id, req.body);
+    await reportesService.updateReporte(id, req.body, req.scope);
 
     return res.json({
       ok: true,
@@ -72,7 +78,8 @@ async function updateReporte(req, res) {
 async function descargarPdfReporte(req, res) {
   try {
     const { id } = req.params;
-    const filePath = await reportesService.getReportePdfPath(id);
+
+    const filePath = await reportesService.getReportePdfPath(id, req.scope);
 
     return res.download(filePath);
   } catch (error) {
