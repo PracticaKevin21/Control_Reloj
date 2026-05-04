@@ -30,10 +30,7 @@ function aplicarFiltroScope(scope, usarWhere = true) {
   const inicio = usarWhere ? 'WHERE' : 'AND';
 
   if (!scope || scope.tipo === 'global') {
-    return {
-      sql: '',
-      params: []
-    };
+    return { sql: '', params: [] };
   }
 
   if (scope.tipo === 'departamento') {
@@ -113,9 +110,7 @@ function validarPermisoRevisionSolicitud(solicitud, usuarioActual, scope) {
     throw new Error('No puedes revisar tu propia solicitud');
   }
 
-  if (usuarioActual.rol === 'SuperAdmin') {
-    return true;
-  }
+  if (usuarioActual.rol === 'SuperAdmin') return true;
 
   if (usuarioActual.rol === 'Administrador') {
     if (scope.tipo !== 'departamento') {
@@ -206,11 +201,7 @@ async function createSolicitud(data, usuarioActual, scope) {
   }
 
   const [marcacionRows] = await pool.query(
-    `
-    SELECT id_marcacion, id_usuario
-    FROM marcaciones
-    WHERE id_marcacion = ?
-    `,
+    `SELECT id_marcacion, id_usuario FROM marcaciones WHERE id_marcacion = ?`,
     [id_marcacion]
   );
 
@@ -231,17 +222,13 @@ async function createSolicitud(data, usuarioActual, scope) {
     [idUsuarioSolicitud, id_marcacion, motivo]
   );
 
-  return {
-    id: result.insertId
-  };
+  return { id: result.insertId };
 }
 
 async function updateSolicitud(id, data, usuarioActual, scope) {
   const { estado, comentario_revision } = data;
 
-  if (!estado) {
-    throw new Error('Debe indicar estado');
-  }
+  if (!estado) throw new Error('Debe indicar estado');
 
   if (estado !== 'APROBADA' && estado !== 'RECHAZADA') {
     throw new Error('Estado inválido');
@@ -257,6 +244,7 @@ async function updateSolicitud(id, data, usuarioActual, scope) {
 
   const revisadoPor = usuarioActual.id_usuario;
 
+  // 🔹 Actualiza solicitud
   await pool.query(
     `
     UPDATE solicitudes
@@ -269,6 +257,22 @@ async function updateSolicitud(id, data, usuarioActual, scope) {
     `,
     [estado, revisadoPor, comentario_revision || null, id]
   );
+
+  // 🔥 NUEVO: actualizar marcación automáticamente
+  if (estado === 'APROBADA') {
+    await pool.query(
+      `
+      UPDATE marcaciones
+      SET
+        estado = 'NORMAL',
+        requiere_aprobacion = 0,
+        aprobado_por = ?,
+        fecha_aprobacion = NOW()
+      WHERE id_marcacion = ?
+      `,
+      [revisadoPor, solicitud.id_marcacion]
+    );
+  }
 }
 
 module.exports = {
