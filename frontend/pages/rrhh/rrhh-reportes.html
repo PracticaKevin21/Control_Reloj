@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Reportes PDF | Admin RRHH</title>
+
+  <link rel="stylesheet" href="./rrhh-reportes.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a href="./rrhh-historial.html">Historial asistencia</a>
+        <a href="./rrhh-usuarios.html">Gestión usuarios</a>
+        <a class="active" href="./rrhh-reportes.html">Reportes PDF</a>
+        <a href="./rrhh-superadmin.html">SuperAdmin</a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+        <div>
+          <h1>Exportación de Reportes PDF</h1>
+          <p>Generación mensual de historial de asistencia</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Admin RRHH</strong>
+          <span id="rolUsuario">AdminRRHH</span>
+        </div>
+      </header>
+
+      <section class="generator-card">
+
+        <div class="generator-header">
+          <h2>Generar nuevo reporte</h2>
+          <p>Seleccione funcionario y período mensual</p>
+        </div>
+
+        <form id="formReporte" class="generator-form">
+
+          <div class="input-group">
+            <label>Funcionario</label>
+
+            <select id="usuarioSelect" required>
+              <option value="">Seleccione un funcionario</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Mes</label>
+
+            <input type="month" id="mesInput" required />
+          </div>
+
+          <button type="submit" id="btnGenerar">
+            Generar reporte PDF
+          </button>
+
+        </form>
+
+        <p id="mensajeEstado" class="mensaje"></p>
+
+      </section>
+
+      <section class="summary-grid">
+
+        <div class="summary-card">
+          <span>Total reportes</span>
+          <strong id="totalReportes">0</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Último mes generado</span>
+          <strong id="ultimoMes">-</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Estado sistema</span>
+          <strong class="estado-ok">Operativo</strong>
+        </div>
+
+      </section>
+
+      <section class="table-card">
+
+        <div class="table-header">
+          <h2>Historial de reportes</h2>
+          <p id="tablaMensaje">Cargando reportes...</p>
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+            <thead>
+              <tr>
+                <th>Funcionario</th>
+                <th>Mes</th>
+                <th>Fecha generación</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaReportes">
+              <!-- Reportes -->
+            </tbody>
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./rrhh-reportes.js"></script>
+</body>
+</html>
