@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Gestión SuperAdmin | Admin RRHH</title>
+
+  <link rel="stylesheet" href="./rrhh-superadmin.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a href="./rrhh-historial.html">Historial asistencia</a>
+        <a href="./rrhh-usuarios.html">Gestión usuarios</a>
+        <a href="./rrhh-reportes.html">Reportes PDF</a>
+        <a class="active" href="./rrhh-superadmin.html">SuperAdmin</a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+        <div>
+          <h1>Gestión de SuperAdministradores</h1>
+          <p>Administración de usuarios con rol SuperAdmin</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Admin RRHH</strong>
+          <span id="rolUsuario">AdminRRHH</span>
+        </div>
+      </header>
+
+      <section class="summary-grid">
+
+        <div class="summary-card">
+          <span>Total SuperAdmin</span>
+          <strong id="totalSuperAdmin">0</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>SuperAdmin activos</span>
+          <strong id="totalActivos">0</strong>
+        </div>
+
+        <div class="summary-card">
+          <span>Estado sistema</span>
+          <strong class="estado-ok">Protegido</strong>
+        </div>
+
+      </section>
+
+      <section class="filters">
+
+        <input 
+          type="text" 
+          id="buscarInput"
+          placeholder="Buscar por nombre o correo..."
+        />
+
+        <select id="estadoFiltro">
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="INACTIVO">Inactivo</option>
+        </select>
+
+        <button id="btnRecargar">
+          Recargar
+        </button>
+
+      </section>
+
+      <section class="table-card">
+
+        <div class="table-header">
+          <h2>SuperAdministradores registrados</h2>
+          <p id="tablaMensaje">Cargando información...</p>
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaSuperAdmin">
+              <!-- contenido -->
+            </tbody>
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL -->
+
+  <div class="modal" id="modalEditar">
+
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h2>Editar SuperAdmin</h2>
+
+        <button id="btnCerrarModal">×</button>
+      </div>
+
+      <form id="formEditar">
+
+        <input type="hidden" id="editIdUsuario" />
+
+        <div class="form-grid">
+
+          <div class="input-group">
+            <label>Nombres</label>
+            <input type="text" id="editNombres" required />
+          </div>
+
+          <div class="input-group">
+            <label>Apellidos</label>
+            <input type="text" id="editApellidos" required />
+          </div>
+
+          <div class="input-group">
+            <label>Correo</label>
+            <input type="email" id="editCorreo" required />
+          </div>
+
+          <div class="input-group">
+            <label>Teléfono</label>
+            <input type="text" id="editTelefono" />
+          </div>
+
+          <div class="input-group">
+            <label>Estado</label>
+
+            <select id="editEstado">
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          </div>
+
+        </div>
+
+        <p class="modal-note">
+          Los usuarios SuperAdmin poseen acceso total al sistema, por lo que cualquier modificación debe realizarse cuidadosamente.
+        </p>
+
+        <button type="submit" class="btnGuardar">
+          Guardar cambios
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./rrhh-superadmin.js"></script>
+
+</body>
+</html>
