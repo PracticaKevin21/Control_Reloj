@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Gestión Usuarios | Administrador</title>
+
+  <link rel="stylesheet" href="./admin-usuarios.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a class="active" href="./admin-usuarios.html">Gestión usuarios</a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+        <div>
+          <h1>Gestión de Usuarios del Departamento</h1>
+          <p>Administración de funcionarios y jefaturas asignadas a su departamento</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Administrador</strong>
+          <span id="rolUsuario">Administrador</span>
+        </div>
+      </header>
+
+      <section class="filters">
+        <input type="text" id="buscarInput" placeholder="Buscar por nombre, correo, rol o subdepartamento..." />
+
+        <select id="rolFiltro">
+          <option value="">Todos los roles</option>
+          <option value="Funcionario">Funcionario</option>
+          <option value="Jefatura">Jefatura</option>
+        </select>
+
+        <select id="estadoFiltro">
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="INACTIVO">Inactivo</option>
+        </select>
+
+        <button id="btnRecargar">Recargar</button>
+      </section>
+
+      <section class="cards">
+        <div class="card">
+          <span>Total usuarios</span>
+          <strong id="totalUsuarios">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Funcionarios</span>
+          <strong id="totalFuncionarios">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Jefaturas</span>
+          <strong id="totalJefaturas">0</strong>
+        </div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-header">
+          <h2>Usuarios del departamento</h2>
+          <p id="mensajeEstado">Cargando usuarios...</p>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Rol</th>
+                <th>Departamento</th>
+                <th>Subdepartamento</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaUsuarios">
+              <!-- Datos desde backend -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="modal" id="modalEditar">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Editar usuario</h2>
+        <button id="btnCerrarModal">×</button>
+      </div>
+
+      <form id="formEditar">
+        <input type="hidden" id="editIdUsuario" />
+
+        <div class="form-grid">
+          <div class="input-group">
+            <label>Nombres</label>
+            <input type="text" id="editNombres" required />
+          </div>
+
+          <div class="input-group">
+            <label>Apellidos</label>
+            <input type="text" id="editApellidos" required />
+          </div>
+
+          <div class="input-group">
+            <label>Correo</label>
+            <input type="email" id="editCorreo" required />
+          </div>
+
+          <div class="input-group">
+            <label>Teléfono</label>
+            <input type="text" id="editTelefono" />
+          </div>
+
+          <div class="input-group">
+            <label>Rol</label>
+            <select id="editRol" required>
+              <option value="3">Funcionario</option>
+              <option value="2">Jefatura</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Estado</label>
+            <select id="editEstado" required>
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="modal-note">
+          El Administrador solo puede gestionar funcionarios y jefaturas pertenecientes a su departamento asignado.
+        </p>
+
+        <button type="submit" class="btnGuardar">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./admin-usuarios.js"></script>
+</body>
+</html>
