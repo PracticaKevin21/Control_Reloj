@@ -44,10 +44,11 @@ async function register(req, res) {
       password,
       id_rol,
       id_subdepartamento,
+      id_departamento_asignado,
       telefono
     } = req.body;
 
-    if (!rut || !nombres || !apellidos || !correo || !password || !id_rol || !id_subdepartamento) {
+    if (!rut || !nombres || !apellidos || !correo || !password || !id_rol) {
       return res.status(400).json({
         ok: false,
         mensaje: 'Faltan campos obligatorios'
@@ -78,6 +79,7 @@ async function register(req, res) {
       password,
       id_rol,
       id_subdepartamento,
+      id_departamento_asignado,
       telefono
     });
 

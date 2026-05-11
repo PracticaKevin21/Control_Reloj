@@ -38,7 +38,6 @@ async function login(correo, password) {
     throw new Error('Contraseña incorrecta');
   }
 
-  // 🔥 PAYLOAD COMPLETO (CLAVE PARA PERMISOS)
   const payload = {
     id_usuario: usuario.id_usuario,
     correo: usuario.correo,
@@ -104,37 +103,40 @@ async function register(data) {
 
   const rolNombre = rolRows[0].nombre;
 
-  // 🔥 VALIDACIONES SEGÚN ROL
-
-  // ADMIN → requiere departamento
-  if (rolNombre === 'Administrador') {
+  // Administrador normal y AdminRRHH requieren departamento asignado
+  if (rolNombre === 'Administrador' || rolNombre === 'AdminRRHH') {
     if (!id_departamento_asignado) {
-      throw new Error('Administrador requiere id_departamento_asignado');
+      throw new Error(`${rolNombre} requiere id_departamento_asignado`);
+    }
+
+    const [deptoRows] = await pool.query(
+      'SELECT id_departamento FROM departamentos WHERE id_departamento = ?',
+      [id_departamento_asignado]
+    );
+
+    if (deptoRows.length === 0) {
+      throw new Error('El departamento indicado no existe');
     }
   }
 
-  // JEFATURA / FUNCIONARIO → requieren subdepartamento
+  // Jefatura y Funcionario requieren subdepartamento
   if (rolNombre === 'Jefatura' || rolNombre === 'Funcionario') {
     if (!id_subdepartamento) {
       throw new Error('Este rol requiere id_subdepartamento');
     }
 
-    const [subExists] = await pool.query(
+    const [subRows] = await pool.query(
       'SELECT id_subdepartamento FROM subdepartamentos WHERE id_subdepartamento = ?',
       [id_subdepartamento]
     );
 
-    if (subExists.length === 0) {
+    if (subRows.length === 0) {
       throw new Error('El subdepartamento indicado no existe');
     }
   }
 
-  // SUPERADMIN → no necesita nada
-  if (rolNombre === 'SuperAdmin') {
-    // sin validaciones adicionales
-  }
+  // SuperAdmin no requiere departamento ni subdepartamento
 
-  // Hash password
   const passwordHash = await bcrypt.hash(password, 10);
 
   const [result] = await pool.query(
