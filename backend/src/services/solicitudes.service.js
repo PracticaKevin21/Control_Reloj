@@ -1,15 +1,19 @@
 const { pool } = require('../config/db');
 
+const estadosValidos = ['PENDIENTE', 'APROBADA', 'RECHAZADA'];
+
+/* =========================
+   SELECT BASE
+========================= */
 function selectSolicitudesBase() {
   return `
-    SELECT 
+    SELECT
       s.id_solicitud,
       s.id_usuario,
       CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
+      u.correo,
       d.nombre AS departamento,
       sd.nombre AS subdepartamento,
-      sd.id_departamento,
-      u.id_subdepartamento,
       s.id_marcacion,
       s.motivo,
       s.estado,
@@ -26,11 +30,17 @@ function selectSolicitudesBase() {
   `;
 }
 
+/* =========================
+   FILTRO POR SCOPE
+========================= */
 function aplicarFiltroScope(scope, usarWhere = true) {
   const inicio = usarWhere ? 'WHERE' : 'AND';
 
   if (!scope || scope.tipo === 'global') {
-    return { sql: '', params: [] };
+    return {
+      sql: '',
+      params: []
+    };
   }
 
   if (scope.tipo === 'departamento') {
@@ -57,6 +67,9 @@ function aplicarFiltroScope(scope, usarWhere = true) {
   throw new Error('Scope inválido');
 }
 
+/* =========================
+   OBTENER USUARIO + DEPTO
+========================= */
 async function getUsuarioConDepartamento(id_usuario) {
   const [rows] = await pool.query(
     `
@@ -79,6 +92,9 @@ async function getUsuarioConDepartamento(id_usuario) {
   return rows[0];
 }
 
+/* =========================
+   VALIDAR PERMISO SOBRE USUARIO
+========================= */
 function validarPermisoSobreUsuario(usuario, scope) {
   if (!scope || scope.tipo === 'global') return true;
 
@@ -97,48 +113,9 @@ function validarPermisoSobreUsuario(usuario, scope) {
   return false;
 }
 
-function validarPermisoRevisionSolicitud(solicitud, usuarioActual, scope) {
-  if (
-    usuarioActual.rol !== 'SuperAdmin' &&
-    usuarioActual.rol !== 'Administrador' &&
-    usuarioActual.rol !== 'Jefatura'
-  ) {
-    throw new Error('No tienes permisos para revisar solicitudes');
-  }
-
-  if (usuarioActual.id_usuario === solicitud.id_usuario) {
-    throw new Error('No puedes revisar tu propia solicitud');
-  }
-
-  if (usuarioActual.rol === 'SuperAdmin') return true;
-
-  if (usuarioActual.rol === 'Administrador') {
-    if (scope.tipo !== 'departamento') {
-      throw new Error('Administrador sin departamento asignado');
-    }
-
-    if (solicitud.id_departamento !== scope.id_departamento) {
-      throw new Error('No puedes revisar solicitudes fuera de tu departamento');
-    }
-
-    return true;
-  }
-
-  if (usuarioActual.rol === 'Jefatura') {
-    if (scope.tipo !== 'subdepartamento') {
-      throw new Error('Jefatura sin subdepartamento asignado');
-    }
-
-    if (solicitud.id_subdepartamento !== scope.id_subdepartamento) {
-      throw new Error('No puedes revisar solicitudes fuera de tu subdepartamento');
-    }
-
-    return true;
-  }
-
-  throw new Error('No tienes permisos para revisar esta solicitud');
-}
-
+/* =========================
+   LISTAR SOLICITUDES
+========================= */
 async function getSolicitudes(scope) {
   const filtro = aplicarFiltroScope(scope);
 
@@ -154,6 +131,9 @@ async function getSolicitudes(scope) {
   return rows;
 }
 
+/* =========================
+   OBTENER SOLICITUD POR ID
+========================= */
 async function getSolicitudById(id, scope) {
   const filtro = aplicarFiltroScope(scope, false);
 
@@ -173,15 +153,23 @@ async function getSolicitudById(id, scope) {
   return rows[0];
 }
 
+/* =========================
+   CREAR SOLICITUD
+========================= */
 async function createSolicitud(data, usuarioActual, scope) {
-  const { id_usuario, id_marcacion, motivo } = data;
+  const {
+    id_usuario,
+    id_marcacion,
+    motivo
+  } = data;
 
   if (!id_marcacion || !motivo) {
-    throw new Error('Faltan datos obligatorios');
+    throw new Error('Debe indicar id_marcacion y motivo');
   }
 
   let idUsuarioSolicitud = id_usuario;
 
+  // Funcionario siempre crea solicitud propia
   if (scope.tipo === 'propio') {
     idUsuarioSolicitud = usuarioActual.id_usuario;
   }
@@ -200,8 +188,13 @@ async function createSolicitud(data, usuarioActual, scope) {
     throw new Error('No tienes permisos para crear solicitudes de este usuario');
   }
 
+  // Validar que la marcación exista y pertenezca al usuario
   const [marcacionRows] = await pool.query(
-    `SELECT id_marcacion, id_usuario FROM marcaciones WHERE id_marcacion = ?`,
+    `
+    SELECT id_marcacion, id_usuario
+    FROM marcaciones
+    WHERE id_marcacion = ?
+    `,
     [id_marcacion]
   );
 
@@ -209,68 +202,123 @@ async function createSolicitud(data, usuarioActual, scope) {
     throw new Error('La marcación indicada no existe');
   }
 
-  if (marcacionRows[0].id_usuario !== Number(idUsuarioSolicitud)) {
-    throw new Error('La marcación no pertenece al usuario indicado');
+  if (Number(marcacionRows[0].id_usuario) !== Number(idUsuarioSolicitud)) {
+    throw new Error('La marcación no corresponde al usuario indicado');
+  }
+
+  // Evitar solicitudes duplicadas pendientes para la misma marcación
+  const [duplicada] = await pool.query(
+    `
+    SELECT id_solicitud
+    FROM solicitudes
+    WHERE id_marcacion = ?
+      AND estado = 'PENDIENTE'
+    `,
+    [id_marcacion]
+  );
+
+  if (duplicada.length > 0) {
+    throw new Error('Ya existe una solicitud pendiente para esta marcación');
   }
 
   const [result] = await pool.query(
     `
-    INSERT INTO solicitudes
-    (id_usuario, id_marcacion, motivo, estado)
-    VALUES (?, ?, ?, 'PENDIENTE')
+    INSERT INTO solicitudes (
+      id_usuario,
+      id_marcacion,
+      motivo,
+      estado,
+      fecha_solicitud
+    )
+    VALUES (?, ?, ?, 'PENDIENTE', NOW())
     `,
-    [idUsuarioSolicitud, id_marcacion, motivo]
+    [
+      idUsuarioSolicitud,
+      id_marcacion,
+      motivo
+    ]
   );
 
-  return { id: result.insertId };
+  return {
+    id: result.insertId
+  };
 }
 
+/* =========================
+   REVISAR / ACTUALIZAR SOLICITUD
+========================= */
 async function updateSolicitud(id, data, usuarioActual, scope) {
-  const { estado, comentario_revision } = data;
+  const {
+    estado,
+    comentario_revision
+  } = data;
 
-  if (!estado) throw new Error('Debe indicar estado');
+  if (!estado) {
+    throw new Error('Debe indicar el estado de la solicitud');
+  }
 
-  if (estado !== 'APROBADA' && estado !== 'RECHAZADA') {
+  if (!estadosValidos.includes(estado)) {
     throw new Error('Estado inválido');
   }
 
+  if (estado === 'PENDIENTE') {
+    throw new Error('No se puede revisar una solicitud dejándola como PENDIENTE');
+  }
+
   const solicitud = await getSolicitudById(id, scope);
+
+  if (!solicitud) {
+    throw new Error('Solicitud no encontrada o sin permisos');
+  }
 
   if (solicitud.estado !== 'PENDIENTE') {
     throw new Error('La solicitud ya fue revisada');
   }
 
-  validarPermisoRevisionSolicitud(solicitud, usuarioActual, scope);
+  if (Number(solicitud.id_usuario) === Number(usuarioActual.id_usuario)) {
+    throw new Error('No puedes revisar tu propia solicitud');
+  }
 
-  const revisadoPor = usuarioActual.id_usuario;
+  // Solo SuperAdmin y AdminRRHH revisan solicitudes globales.
+  if (usuarioActual.rol !== 'SuperAdmin' && usuarioActual.rol !== 'AdminRRHH') {
+    throw new Error('Solo SuperAdmin o AdminRRHH pueden revisar solicitudes');
+  }
 
-  // 🔹 Actualiza solicitud
   await pool.query(
     `
     UPDATE solicitudes
     SET 
       estado = ?,
       revisado_por = ?,
-      comentario_revision = ?,
-      fecha_revision = NOW()
+      fecha_revision = NOW(),
+      comentario_revision = ?
     WHERE id_solicitud = ?
     `,
-    [estado, revisadoPor, comentario_revision || null, id]
+    [
+      estado,
+      usuarioActual.id_usuario,
+      comentario_revision || null,
+      id
+    ]
   );
 
-  // 🔥 NUEVO: actualizar marcación automáticamente
+  // Si la solicitud fue aprobada, actualizar la marcación relacionada como NORMAL.
+  // Esto deja trazabilidad y marca la corrección como validada.
   if (estado === 'APROBADA') {
     await pool.query(
       `
       UPDATE marcaciones
-      SET
+      SET 
         estado = 'NORMAL',
         requiere_aprobacion = 0,
         aprobado_por = ?,
         fecha_aprobacion = NOW()
       WHERE id_marcacion = ?
       `,
-      [revisadoPor, solicitud.id_marcacion]
+      [
+        usuarioActual.id_usuario,
+        solicitud.id_marcacion
+      ]
     );
   }
 }

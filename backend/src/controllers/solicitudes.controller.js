@@ -1,12 +1,16 @@
 const solicitudesService = require('../services/solicitudes.service');
 
+/* =========================
+   GET TODOS
+========================= */
 async function getSolicitudes(req, res) {
   try {
     const solicitudes = await solicitudesService.getSolicitudes(req.scope);
 
-    return res.json({
+    return res.status(200).json({
       ok: true,
-      solicitudes
+      total: solicitudes.length,
+      data: solicitudes
     });
   } catch (error) {
     return res.status(500).json({
@@ -17,15 +21,21 @@ async function getSolicitudes(req, res) {
   }
 }
 
+/* =========================
+   GET POR ID
+========================= */
 async function getSolicitudById(req, res) {
   try {
     const { id } = req.params;
 
-    const solicitud = await solicitudesService.getSolicitudById(id, req.scope);
+    const solicitud = await solicitudesService.getSolicitudById(
+      id,
+      req.scope
+    );
 
-    return res.json({
+    return res.status(200).json({
       ok: true,
-      solicitud
+      data: solicitud
     });
   } catch (error) {
     return res.status(404).json({
@@ -35,6 +45,9 @@ async function getSolicitudById(req, res) {
   }
 }
 
+/* =========================
+   CREATE
+========================= */
 async function createSolicitud(req, res) {
   try {
     const result = await solicitudesService.createSolicitud(
@@ -46,7 +59,7 @@ async function createSolicitud(req, res) {
     return res.status(201).json({
       ok: true,
       mensaje: 'Solicitud creada correctamente',
-      id_solicitud: result.id
+      data: result
     });
   } catch (error) {
     return res.status(400).json({
@@ -56,6 +69,9 @@ async function createSolicitud(req, res) {
   }
 }
 
+/* =========================
+   UPDATE / REVISAR
+========================= */
 async function updateSolicitud(req, res) {
   try {
     const { id } = req.params;
@@ -67,7 +83,7 @@ async function updateSolicitud(req, res) {
       req.scope
     );
 
-    return res.json({
+    return res.status(200).json({
       ok: true,
       mensaje: 'Solicitud revisada correctamente'
     });

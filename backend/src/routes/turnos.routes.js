@@ -5,39 +5,10 @@ const verifyToken = require('../middlewares/auth.middleware');
 const checkRole = require('../middlewares/role.middleware');
 const turnosController = require('../controllers/turnos.controller');
 
-router.get(
-  '/',
-  verifyToken,
-  checkRole('SuperAdmin', 'Administrador'),
-  turnosController.getTurnos
-);
-
-router.get(
-  '/:id',
-  verifyToken,
-  checkRole('SuperAdmin', 'Administrador'),
-  turnosController.getTurnoById
-);
-
-router.post(
-  '/',
-  verifyToken,
-  checkRole('SuperAdmin', 'Administrador'),
-  turnosController.createTurno
-);
-
-router.put(
-  '/:id',
-  verifyToken,
-  checkRole('SuperAdmin', 'Administrador'),
-  turnosController.updateTurno
-);
-
-router.delete(
-  '/:id',
-  verifyToken,
-  checkRole('SuperAdmin', 'Administrador'),
-  turnosController.deleteTurno
-);
+router.get('/', verifyToken, checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'), turnosController.getTurnos);
+router.get('/:id', verifyToken, checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'), turnosController.getTurnoById);
+router.post('/', verifyToken, checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'), turnosController.createTurno);
+router.put('/:id', verifyToken, checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'), turnosController.updateTurno);
+router.delete('/:id', verifyToken, checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'), turnosController.deleteTurno);
 
 module.exports = router;

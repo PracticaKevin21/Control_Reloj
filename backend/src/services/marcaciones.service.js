@@ -112,7 +112,6 @@ function validarPermisoSobreUsuario(usuario, scope) {
   return false;
 }
 
-// Obtener todas según alcance
 async function getMarcaciones(scope) {
   const filtro = aplicarFiltroScope(scope);
 
@@ -128,7 +127,6 @@ async function getMarcaciones(scope) {
   return rows;
 }
 
-// Obtener por ID según alcance
 async function getMarcacionById(id, scope) {
   const filtro = aplicarFiltroScope(scope, false);
 
@@ -148,7 +146,6 @@ async function getMarcacionById(id, scope) {
   return rows[0];
 }
 
-// Crear marcación
 async function createMarcacion(data, usuarioActual, scope) {
   const {
     id_usuario,
@@ -181,7 +178,6 @@ async function createMarcacion(data, usuarioActual, scope) {
 
   let idUsuarioMarcacion = id_usuario;
 
-  // Funcionario siempre marca para sí mismo
   if (scope.tipo === 'propio') {
     idUsuarioMarcacion = usuarioActual.id_usuario;
   }
@@ -232,9 +228,12 @@ async function createMarcacion(data, usuarioActual, scope) {
   };
 }
 
-// Actualizar marcación según alcance
-async function updateMarcacion(id, data, scope) {
+async function updateMarcacion(id, data, usuarioActual, scope) {
   await getMarcacionById(id, scope);
+
+  if (usuarioActual.rol !== 'SuperAdmin' && usuarioActual.rol !== 'AdminRRHH') {
+    throw new Error('Solo SuperAdmin o AdminRRHH pueden actualizar o aprobar marcaciones');
+  }
 
   const {
     estado,
@@ -248,8 +247,10 @@ async function updateMarcacion(id, data, scope) {
     throw new Error('Estado inválido');
   }
 
-  if (aprobado_por) {
-    const aprobador = await getUsuarioConDepartamento(aprobado_por);
+  const aprobadorFinal = aprobado_por || usuarioActual.id_usuario;
+
+  if (aprobadorFinal) {
+    const aprobador = await getUsuarioConDepartamento(aprobadorFinal);
 
     if (aprobador.estado !== 'ACTIVO') {
       throw new Error('El usuario aprobador no está activo');
@@ -276,8 +277,8 @@ async function updateMarcacion(id, data, scope) {
       observacion || null,
       ubicacion || null,
       requiere_aprobacion === undefined ? null : requiere_aprobacion ? 1 : 0,
-      aprobado_por || null,
-      aprobado_por || null,
+      aprobadorFinal || null,
+      aprobadorFinal || null,
       id
     ]
   );

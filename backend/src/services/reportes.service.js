@@ -5,6 +5,9 @@ const path = require('path');
 
 const tiposValidos = ['DIARIO', 'SEMANAL', 'MENSUAL', 'PERSONALIZADO'];
 
+/* =========================
+   FILTRO SCOPE
+========================= */
 function aplicarFiltroScope(scope, usarWhere = true) {
   const inicio = usarWhere ? 'WHERE' : 'AND';
 
@@ -39,56 +42,60 @@ function aplicarFiltroScope(scope, usarWhere = true) {
   throw new Error('Scope inválido');
 }
 
-async function validarUsuarioEnScope(id_usuario, scope) {
+/* =========================
+   USUARIO + DEPTO
+========================= */
+async function getUsuarioConDepartamento(id_usuario) {
   const [rows] = await pool.query(
     `
     SELECT 
       u.id_usuario,
+      u.nombres,
+      u.apellidos,
       u.estado,
       u.id_subdepartamento,
       sd.id_departamento
     FROM usuarios u
-    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
+    LEFT JOIN subdepartamentos sd 
+      ON u.id_subdepartamento = sd.id_subdepartamento
     WHERE u.id_usuario = ?
     `,
     [id_usuario]
   );
 
   if (rows.length === 0) {
-    throw new Error('Usuario no existe');
+    throw new Error('Usuario no encontrado');
   }
 
-  const usuario = rows[0];
+  return rows[0];
+}
 
-  if (usuario.estado !== 'ACTIVO') {
-    throw new Error('El usuario está inactivo');
-  }
-
+/* =========================
+   VALIDAR PERMISO
+========================= */
+function validarPermisoSobreUsuario(usuario, scope) {
   if (!scope || scope.tipo === 'global') {
-    return usuario;
+    return true;
   }
 
   if (scope.tipo === 'departamento') {
-    if (usuario.id_departamento !== scope.id_departamento) {
-      throw new Error('No puedes generar reportes fuera de tu departamento');
-    }
+    return usuario.id_departamento === scope.id_departamento;
   }
 
   if (scope.tipo === 'subdepartamento') {
-    if (usuario.id_subdepartamento !== scope.id_subdepartamento) {
-      throw new Error('No puedes generar reportes fuera de tu subdepartamento');
-    }
+    return usuario.id_subdepartamento === scope.id_subdepartamento;
   }
 
   if (scope.tipo === 'propio') {
-    if (usuario.id_usuario !== scope.id_usuario) {
-      throw new Error('No puedes generar reportes de otros usuarios');
-    }
+    return usuario.id_usuario === scope.id_usuario;
   }
 
-  return usuario;
+  return false;
 }
 
+/* =========================
+   LISTAR REPORTES
+========================= */
 async function getReportes(scope) {
   const filtro = aplicarFiltroScope(scope);
 
@@ -110,12 +117,19 @@ async function getReportes(scope) {
       r.observacion,
       r.archivo_pdf,
       r.fecha_generacion,
+      d.nombre AS departamento,
+      sd.nombre AS subdepartamento,
       sd.id_departamento,
       u.id_subdepartamento
     FROM reportes r
-    JOIN usuarios u ON r.id_usuario = u.id_usuario
-    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
-    JOIN usuarios g ON r.generado_por = g.id_usuario
+    JOIN usuarios u 
+      ON r.id_usuario = u.id_usuario
+    LEFT JOIN subdepartamentos sd 
+      ON u.id_subdepartamento = sd.id_subdepartamento
+    LEFT JOIN departamentos d 
+      ON sd.id_departamento = d.id_departamento
+    JOIN usuarios g 
+      ON r.generado_por = g.id_usuario
     ${filtro.sql}
     ORDER BY r.fecha_generacion DESC
     `,
@@ -125,6 +139,9 @@ async function getReportes(scope) {
   return rows;
 }
 
+/* =========================
+   OBTENER POR ID
+========================= */
 async function getReporteById(id, scope) {
   const filtro = aplicarFiltroScope(scope, false);
 
@@ -134,12 +151,19 @@ async function getReporteById(id, scope) {
       r.*,
       CONCAT(u.nombres, ' ', u.apellidos) AS usuario,
       CONCAT(g.nombres, ' ', g.apellidos) AS generado_por_nombre,
+      d.nombre AS departamento,
+      sd.nombre AS subdepartamento,
       sd.id_departamento,
       u.id_subdepartamento
     FROM reportes r
-    JOIN usuarios u ON r.id_usuario = u.id_usuario
-    LEFT JOIN subdepartamentos sd ON u.id_subdepartamento = sd.id_subdepartamento
-    JOIN usuarios g ON r.generado_por = g.id_usuario
+    JOIN usuarios u 
+      ON r.id_usuario = u.id_usuario
+    LEFT JOIN subdepartamentos sd 
+      ON u.id_subdepartamento = sd.id_subdepartamento
+    LEFT JOIN departamentos d 
+      ON sd.id_departamento = d.id_departamento
+    JOIN usuarios g 
+      ON r.generado_por = g.id_usuario
     WHERE r.id_reporte = ?
     ${filtro.sql}
     `,
@@ -153,73 +177,131 @@ async function getReporteById(id, scope) {
   return rows[0];
 }
 
-async function crearPdfReporte(data, archivoPdf) {
-  const rutaCompleta = path.join(__dirname, '../../', archivoPdf);
+/* =========================
+   CALCULAR TOTALES
+========================= */
+async function calcularTotales(id_usuario, fecha_desde, fecha_hasta) {
+  const [marcacionesRows] = await pool.query(
+    `
+    SELECT
+      COUNT(*) AS total_marcaciones,
+      SUM(CASE WHEN estado = 'TARDANZA' THEN 1 ELSE 0 END) AS total_atrasos,
+      SUM(CASE WHEN estado = 'HORA_EXTRA' THEN 1 ELSE 0 END) AS total_horas_extra,
+      SUM(CASE WHEN estado = 'INASISTENCIA' THEN 1 ELSE 0 END) AS total_inasistencias
+    FROM marcaciones
+    WHERE id_usuario = ?
+      AND fecha BETWEEN ? AND ?
+    `,
+    [id_usuario, fecha_desde, fecha_hasta]
+  );
 
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const stream = fs.createWriteStream(rutaCompleta);
+  const [solicitudesRows] = await pool.query(
+    `
+    SELECT COUNT(*) AS total_solicitudes
+    FROM solicitudes
+    WHERE id_usuario = ?
+      AND DATE(fecha_solicitud) BETWEEN ? AND ?
+    `,
+    [id_usuario, fecha_desde, fecha_hasta]
+  );
 
-    doc.pipe(stream);
+  const marcaciones = marcacionesRows[0];
+  const solicitudes = solicitudesRows[0];
 
-    doc.fontSize(20).text('REPORTE DE ASISTENCIA', { align: 'center' });
-
-    doc.moveDown(1);
-
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-
-    doc.moveDown(1.5);
-
-    doc.fontSize(12);
-    doc.text(`Usuario: ${data.usuario}`);
-    doc.text(`Generado por: ${data.generado_por}`);
-    doc.text(`Tipo: ${data.tipo}`);
-    doc.text(`Periodo: ${data.fecha_desde} al ${data.fecha_hasta}`);
-
-    doc.moveDown(1.5);
-
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-
-    doc.moveDown(1.5);
-
-    doc.fontSize(14).text('RESUMEN', { underline: true });
-    doc.moveDown(0.5);
-
-    doc.fontSize(12);
-    doc.text(`Total marcaciones: ${data.total_marcaciones}`);
-    doc.text(`Total atrasos: ${data.total_atrasos}`);
-    doc.text(`Total horas extra: ${data.total_horas_extra_minutos}`);
-    doc.text(`Total inasistencias: ${data.total_inasistencias}`);
-    doc.text(`Total solicitudes: ${data.total_solicitudes}`);
-
-    doc.moveDown(1.5);
-
-    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-
-    doc.moveDown(1.5);
-
-    doc.fontSize(14).text('OBSERVACIÓN', { underline: true });
-    doc.moveDown(0.5);
-
-    doc.fontSize(12).text(data.observacion || 'Sin observación', {
-      align: 'justify'
-    });
-
-    doc.moveDown(2);
-
-    const fechaActual = new Date().toLocaleString();
-
-    doc.fontSize(10).text(`Generado el: ${fechaActual}`, {
-      align: 'right'
-    });
-
-    doc.end();
-
-    stream.on('finish', resolve);
-    stream.on('error', reject);
-  });
+  return {
+    total_marcaciones: marcaciones.total_marcaciones || 0,
+    total_atrasos: marcaciones.total_atrasos || 0,
+    total_horas_extra_minutos: marcaciones.total_horas_extra || 0,
+    total_inasistencias: marcaciones.total_inasistencias || 0,
+    total_solicitudes: solicitudes.total_solicitudes || 0
+  };
 }
 
+/* =========================
+   GENERAR PDF
+========================= */
+async function generarPdfReporte(dataPdf) {
+  const {
+    id_reporte,
+    usuario,
+    generado_por,
+    tipo,
+    fecha_desde,
+    fecha_hasta,
+    total_marcaciones,
+    total_atrasos,
+    total_horas_extra_minutos,
+    total_inasistencias,
+    total_solicitudes,
+    observacion
+  } = dataPdf;
+
+  const carpetaReportes = path.join(__dirname, '../../reportes');
+
+  if (!fs.existsSync(carpetaReportes)) {
+    fs.mkdirSync(carpetaReportes, { recursive: true });
+  }
+
+  const nombreArchivo = `reporte_${id_reporte}_${Date.now()}.pdf`;
+  const archivoRelativo = `reportes/${nombreArchivo}`;
+  const rutaCompleta = path.join(__dirname, '../../', archivoRelativo);
+
+  const doc = new PDFDocument({
+    size: 'A4',
+    margin: 50
+  });
+
+  doc.pipe(fs.createWriteStream(rutaCompleta));
+
+  doc
+    .fontSize(18)
+    .text('REPORTE DE ASISTENCIA', { align: 'center' });
+
+  doc.moveDown();
+  doc.moveTo(50, 95).lineTo(545, 95).stroke();
+
+  doc.moveDown(2);
+  doc.fontSize(11);
+  doc.text(`Usuario: ${usuario}`);
+  doc.text(`Generado por: ${generado_por}`);
+  doc.text(`Tipo: ${tipo}`);
+  doc.text(`Periodo: ${fecha_desde} al ${fecha_hasta}`);
+
+  doc.moveDown();
+  doc.moveTo(50, 180).lineTo(545, 180).stroke();
+
+  doc.moveDown();
+  doc.fontSize(12).text('RESUMEN', { underline: true });
+  doc.moveDown(0.5);
+  doc.fontSize(11);
+  doc.text(`Total marcaciones: ${total_marcaciones}`);
+  doc.text(`Total atrasos: ${total_atrasos}`);
+  doc.text(`Total horas extra (min): ${total_horas_extra_minutos}`);
+  doc.text(`Total inasistencias: ${total_inasistencias}`);
+  doc.text(`Total solicitudes: ${total_solicitudes}`);
+
+  doc.moveDown();
+  doc.moveTo(50, 300).lineTo(545, 300).stroke();
+
+  doc.moveDown();
+  doc.fontSize(12).text('OBSERVACIÓN', { underline: true });
+  doc.moveDown(0.5);
+  doc.fontSize(11).text(observacion || 'Sin observación');
+
+  doc.moveDown(3);
+  doc.fontSize(8).text(
+    `Generado el: ${new Date().toLocaleString('es-CL')}`,
+    { align: 'right' }
+  );
+
+  doc.end();
+
+  return archivoRelativo;
+}
+
+/* =========================
+   CREAR REPORTE
+========================= */
 async function createReporte(data, usuarioActual, scope) {
   const {
     id_usuario,
@@ -234,113 +316,22 @@ async function createReporte(data, usuarioActual, scope) {
   }
 
   if (!tiposValidos.includes(tipo)) {
-    throw new Error('Tipo de reporte inválido');
+    throw new Error('Tipo inválido');
   }
 
-  await validarUsuarioEnScope(Number(id_usuario), scope);
+  const usuarioReporte = await getUsuarioConDepartamento(id_usuario);
 
-  const [usuarioRows] = await pool.query(
-    `
-    SELECT nombres, apellidos
-    FROM usuarios
-    WHERE id_usuario = ?
-    `,
-    [id_usuario]
-  );
-
-  const [generadorRows] = await pool.query(
-    `
-    SELECT nombres, apellidos
-    FROM usuarios
-    WHERE id_usuario = ?
-    `,
-    [usuarioActual.id_usuario]
-  );
-
-  if (usuarioRows.length === 0) {
-    throw new Error('Usuario no encontrado');
+  if (usuarioReporte.estado !== 'ACTIVO') {
+    throw new Error('El usuario no está activo');
   }
 
-  if (generadorRows.length === 0) {
-    throw new Error('Usuario generador no encontrado');
+  if (!validarPermisoSobreUsuario(usuarioReporte, scope)) {
+    throw new Error('No tienes permisos para generar reportes de este usuario');
   }
 
-  const usuarioNombre = `${usuarioRows[0].nombres} ${usuarioRows[0].apellidos}`;
-  const generadoPorNombre = `${generadorRows[0].nombres} ${generadorRows[0].apellidos}`;
+  const totales = await calcularTotales(id_usuario, fecha_desde, fecha_hasta);
 
-  const [[marcaciones]] = await pool.query(
-    `
-    SELECT COUNT(*) AS total
-    FROM marcaciones
-    WHERE id_usuario = ?
-    AND fecha BETWEEN ? AND ?
-    `,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
-
-  const [[atrasos]] = await pool.query(
-    `
-    SELECT COUNT(*) AS total
-    FROM marcaciones
-    WHERE id_usuario = ?
-    AND estado = 'TARDANZA'
-    AND fecha BETWEEN ? AND ?
-    `,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
-
-  const [[horasExtra]] = await pool.query(
-    `
-    SELECT COUNT(*) AS total
-    FROM marcaciones
-    WHERE id_usuario = ?
-    AND estado = 'HORA_EXTRA'
-    AND fecha BETWEEN ? AND ?
-    `,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
-
-  const [[inasistencias]] = await pool.query(
-    `
-    SELECT COUNT(*) AS total
-    FROM marcaciones
-    WHERE id_usuario = ?
-    AND estado = 'INASISTENCIA'
-    AND fecha BETWEEN ? AND ?
-    `,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
-
-  const [[solicitudes]] = await pool.query(
-    `
-    SELECT COUNT(*) AS total
-    FROM solicitudes
-    WHERE id_usuario = ?
-    AND DATE(fecha_solicitud) BETWEEN ? AND ?
-    `,
-    [id_usuario, fecha_desde, fecha_hasta]
-  );
-
-  const archivoPdf = `reportes/reporte_usuario_${id_usuario}_${Date.now()}.pdf`;
-
-  await crearPdfReporte(
-    {
-      usuario: usuarioNombre,
-      generado_por: generadoPorNombre,
-      tipo,
-      fecha_desde,
-      fecha_hasta,
-      total_marcaciones: marcaciones.total,
-      total_atrasos: atrasos.total,
-      total_horas_extra_minutos: horasExtra.total,
-      total_inasistencias: inasistencias.total,
-      total_solicitudes: solicitudes.total,
-      observacion
-    },
-    archivoPdf
-  );
-
-  const [result] = await pool.query(
+  const [insertResult] = await pool.query(
     `
     INSERT INTO reportes (
       id_usuario,
@@ -356,7 +347,7 @@ async function createReporte(data, usuarioActual, scope) {
       observacion,
       archivo_pdf
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
     `,
     [
       id_usuario,
@@ -364,22 +355,48 @@ async function createReporte(data, usuarioActual, scope) {
       tipo,
       fecha_desde,
       fecha_hasta,
-      marcaciones.total,
-      atrasos.total,
-      horasExtra.total,
-      inasistencias.total,
-      solicitudes.total,
-      observacion || null,
-      archivoPdf
+      totales.total_marcaciones,
+      totales.total_atrasos,
+      totales.total_horas_extra_minutos,
+      totales.total_inasistencias,
+      totales.total_solicitudes,
+      observacion || null
     ]
   );
 
+  const idReporte = insertResult.insertId;
+
+  const generadoPor = `${usuarioActual.nombres || ''} ${usuarioActual.apellidos || ''}`.trim() || usuarioActual.correo;
+
+  const archivoPdf = await generarPdfReporte({
+    id_reporte: idReporte,
+    usuario: `${usuarioReporte.nombres} ${usuarioReporte.apellidos}`,
+    generado_por: generadoPor,
+    tipo,
+    fecha_desde,
+    fecha_hasta,
+    ...totales,
+    observacion
+  });
+
+  await pool.query(
+    `
+    UPDATE reportes
+    SET archivo_pdf = ?
+    WHERE id_reporte = ?
+    `,
+    [archivoPdf, idReporte]
+  );
+
   return {
-    id_reporte: result.insertId,
+    id_reporte: idReporte,
     archivo_pdf: archivoPdf
   };
 }
 
+/* =========================
+   ACTUALIZAR REPORTE
+========================= */
 async function updateReporte(id, data, scope) {
   await getReporteById(id, scope);
 
@@ -395,9 +412,23 @@ async function updateReporte(id, data, scope) {
   );
 }
 
+/* =========================
+   RUTA PDF
+========================= */
 async function getReportePdfPath(id, scope) {
   const reporte = await getReporteById(id, scope);
-  return path.join(__dirname, '../../', reporte.archivo_pdf);
+
+  if (!reporte.archivo_pdf) {
+    throw new Error('El reporte no tiene archivo PDF asociado');
+  }
+
+  const filePath = path.join(__dirname, '../../', reporte.archivo_pdf);
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error('El archivo PDF no existe en el servidor');
+  }
+
+  return filePath;
 }
 
 module.exports = {

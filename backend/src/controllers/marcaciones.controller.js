@@ -1,12 +1,16 @@
 const marcacionesService = require('../services/marcaciones.service');
 
+/* =========================
+   GET TODOS
+========================= */
 async function getMarcaciones(req, res) {
   try {
     const marcaciones = await marcacionesService.getMarcaciones(req.scope);
 
     return res.status(200).json({
       ok: true,
-      marcaciones
+      total: marcaciones.length,
+      data: marcaciones
     });
   } catch (error) {
     return res.status(500).json({
@@ -17,15 +21,21 @@ async function getMarcaciones(req, res) {
   }
 }
 
+/* =========================
+   GET POR ID
+========================= */
 async function getMarcacionById(req, res) {
   try {
     const { id } = req.params;
 
-    const marcacion = await marcacionesService.getMarcacionById(id, req.scope);
+    const marcacion = await marcacionesService.getMarcacionById(
+      id,
+      req.scope
+    );
 
     return res.status(200).json({
       ok: true,
-      marcacion
+      data: marcacion
     });
   } catch (error) {
     return res.status(404).json({
@@ -35,6 +45,9 @@ async function getMarcacionById(req, res) {
   }
 }
 
+/* =========================
+   CREATE
+========================= */
 async function createMarcacion(req, res) {
   try {
     const result = await marcacionesService.createMarcacion(
@@ -46,7 +59,7 @@ async function createMarcacion(req, res) {
     return res.status(201).json({
       ok: true,
       mensaje: 'Marcación registrada correctamente',
-      id_marcacion: result.id_marcacion
+      data: result
     });
   } catch (error) {
     return res.status(400).json({
@@ -56,11 +69,19 @@ async function createMarcacion(req, res) {
   }
 }
 
+/* =========================
+   UPDATE
+========================= */
 async function updateMarcacion(req, res) {
   try {
     const { id } = req.params;
 
-    await marcacionesService.updateMarcacion(id, req.body, req.scope);
+    await marcacionesService.updateMarcacion(
+      id,
+      req.body,
+      req.usuario,
+      req.scope
+    );
 
     return res.status(200).json({
       ok: true,

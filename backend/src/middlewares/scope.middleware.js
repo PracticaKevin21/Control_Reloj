@@ -9,16 +9,28 @@ function applyScope(req, res, next) {
       });
     }
 
-    const { rol, id_usuario, id_departamento_asignado, id_subdepartamento } = usuario;
+    const {
+      rol,
+      id_usuario,
+      id_departamento_asignado,
+      id_subdepartamento
+    } = usuario;
 
-    // 🔥 SuperAdmin → sin restricciones
-    if (rol === 'SuperAdmin') {
+    // SuperAdmin y AdminRRHH: acceso global al sistema.
+    if (rol === 'SuperAdmin' || rol === 'AdminRRHH') {
       req.scope = { tipo: 'global' };
       return next();
     }
 
-    // 🔵 Admin → por departamento
+    // Administrador: solo su departamento asignado.
     if (rol === 'Administrador') {
+      if (!id_departamento_asignado) {
+        return res.status(403).json({
+          ok: false,
+          mensaje: 'Administrador sin departamento asignado'
+        });
+      }
+
       req.scope = {
         tipo: 'departamento',
         id_departamento: id_departamento_asignado
@@ -26,8 +38,15 @@ function applyScope(req, res, next) {
       return next();
     }
 
-    // 🟡 Jefatura → por subdepartamento
+    // Jefatura: solo su subdepartamento asignado.
     if (rol === 'Jefatura') {
+      if (!id_subdepartamento) {
+        return res.status(403).json({
+          ok: false,
+          mensaje: 'Jefatura sin subdepartamento asignado'
+        });
+      }
+
       req.scope = {
         tipo: 'subdepartamento',
         id_subdepartamento
@@ -35,7 +54,7 @@ function applyScope(req, res, next) {
       return next();
     }
 
-    // 🟣 Funcionario → solo él mismo
+    // Funcionario: solo su información propia.
     if (rol === 'Funcionario') {
       req.scope = {
         tipo: 'propio',
@@ -48,7 +67,6 @@ function applyScope(req, res, next) {
       ok: false,
       mensaje: 'Rol no reconocido'
     });
-
   } catch (error) {
     return res.status(500).json({
       ok: false,

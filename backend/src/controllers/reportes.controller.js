@@ -1,33 +1,52 @@
 const reportesService = require('../services/reportes.service');
 
+/* =========================
+   GET TODOS
+========================= */
 async function getReportes(req, res) {
-  try {
-    const reportes = await reportesService.getReportes(req.scope);
 
-    return res.json({
+  try {
+
+    const rows = await reportesService.getReportes(
+      req.scope
+    );
+
+    return res.status(200).json({
       ok: true,
-      reportes
+      total: rows.length,
+      data: rows
     });
+
   } catch (error) {
+
     return res.status(500).json({
       ok: false,
-      mensaje: 'Error al obtener reportes',
-      error: error.message
+      mensaje: error.message
     });
   }
 }
 
+/* =========================
+   GET POR ID
+========================= */
 async function getReporteById(req, res) {
+
   try {
+
     const { id } = req.params;
 
-    const reporte = await reportesService.getReporteById(id, req.scope);
+    const row = await reportesService.getReporteById(
+      id,
+      req.scope
+    );
 
-    return res.json({
+    return res.status(200).json({
       ok: true,
-      reporte
+      data: row
     });
+
   } catch (error) {
+
     return res.status(404).json({
       ok: false,
       mensaje: error.message
@@ -35,8 +54,13 @@ async function getReporteById(req, res) {
   }
 }
 
+/* =========================
+   CREATE
+========================= */
 async function createReporte(req, res) {
+
   try {
+
     const result = await reportesService.createReporte(
       req.body,
       req.usuario,
@@ -46,10 +70,11 @@ async function createReporte(req, res) {
     return res.status(201).json({
       ok: true,
       mensaje: 'Reporte generado correctamente',
-      id_reporte: result.id_reporte,
-      archivo_pdf: result.archivo_pdf
+      data: result
     });
+
   } catch (error) {
+
     return res.status(400).json({
       ok: false,
       mensaje: error.message
@@ -57,17 +82,28 @@ async function createReporte(req, res) {
   }
 }
 
+/* =========================
+   UPDATE
+========================= */
 async function updateReporte(req, res) {
+
   try {
+
     const { id } = req.params;
 
-    await reportesService.updateReporte(id, req.body, req.scope);
+    await reportesService.updateReporte(
+      id,
+      req.body,
+      req.scope
+    );
 
-    return res.json({
+    return res.status(200).json({
       ok: true,
       mensaje: 'Reporte actualizado correctamente'
     });
+
   } catch (error) {
+
     return res.status(400).json({
       ok: false,
       mensaje: error.message
@@ -75,14 +111,24 @@ async function updateReporte(req, res) {
   }
 }
 
+/* =========================
+   DESCARGAR PDF
+========================= */
 async function descargarPdfReporte(req, res) {
+
   try {
+
     const { id } = req.params;
 
-    const filePath = await reportesService.getReportePdfPath(id, req.scope);
+    const filePath = await reportesService.getReportePdfPath(
+      id,
+      req.scope
+    );
 
     return res.download(filePath);
+
   } catch (error) {
+
     return res.status(404).json({
       ok: false,
       mensaje: error.message

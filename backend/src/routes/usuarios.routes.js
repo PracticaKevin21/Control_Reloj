@@ -6,7 +6,6 @@ const checkRole = require('../middlewares/role.middleware');
 const applyScope = require('../middlewares/scope.middleware');
 const usuariosController = require('../controllers/usuarios.controller');
 
-// Perfil propio
 router.get('/mi-perfil', verifyToken, (req, res) => {
   res.json({
     ok: true,
@@ -14,36 +13,32 @@ router.get('/mi-perfil', verifyToken, (req, res) => {
   });
 });
 
-// Listar usuarios según alcance
 router.get('/', verifyToken, applyScope, usuariosController.getUsuarios);
-
-// Obtener usuario por ID según alcance
 router.get('/:id', verifyToken, applyScope, usuariosController.getUsuarioById);
 
-// Crear usuario según rol
+// Crear usuarios: SuperAdmin/AdminRRHH global, Administrador solo funcionarios de su departamento.
 router.post(
   '/',
   verifyToken,
   applyScope,
-  checkRole('SuperAdmin', 'Administrador', 'Jefatura'),
+  checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'),
   usuariosController.createUsuario
 );
 
-// Actualizar usuario según rol
+// Actualizar usuarios: SuperAdmin/AdminRRHH global, Administrador solo jefaturas/funcionarios de su departamento.
 router.put(
   '/:id',
   verifyToken,
   applyScope,
-  checkRole('SuperAdmin', 'Administrador', 'Jefatura'),
+  checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'),
   usuariosController.updateUsuario
 );
 
-// Desactivar usuario según rol
 router.delete(
   '/:id',
   verifyToken,
   applyScope,
-  checkRole('SuperAdmin', 'Administrador', 'Jefatura'),
+  checkRole('SuperAdmin', 'AdminRRHH', 'Administrador'),
   usuariosController.deleteUsuarioLogico
 );
 
