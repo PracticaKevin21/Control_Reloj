@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Historial Asistencia | Jefatura</title>
+
+  <link rel="stylesheet" href="./jefatura-historial.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a class="active" href="./jefatura-historial.html">
+          Historial asistencia
+        </a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+
+        <div>
+          <h1>Historial de Asistencia</h1>
+          <p>Visualización de funcionarios del subdepartamento asignado</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Jefatura</strong>
+          <span id="rolUsuario">Jefatura</span>
+        </div>
+
+      </header>
+
+      <section class="filters">
+
+        <input 
+          type="text"
+          id="buscarInput"
+          placeholder="Buscar funcionario..."
+        />
+
+        <select id="estadoFiltro">
+          <option value="">Todos los estados</option>
+          <option value="NORMAL">Normal</option>
+          <option value="TARDANZA">Tardanza</option>
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="HORA_EXTRA">Hora extra</option>
+        </select>
+
+        <select id="tipoFiltro">
+          <option value="">Todos los tipos</option>
+          <option value="ENTRADA">Entrada</option>
+          <option value="SALIDA">Salida</option>
+        </select>
+
+        <button id="btnRecargar">
+          Recargar
+        </button>
+
+      </section>
+
+      <section class="cards">
+
+        <div class="card">
+          <span>Total marcaciones</span>
+          <strong id="totalMarcaciones">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Pendientes</span>
+          <strong id="totalPendientes">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Tardanzas</span>
+          <strong id="totalTardanzas">0</strong>
+        </div>
+
+      </section>
+
+      <section class="table-card">
+
+        <div class="table-header">
+          <h2>Historial semanal y mensual</h2>
+          <p id="mensajeEstado">Cargando historial...</p>
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Funcionario</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Origen</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaMarcaciones">
+              <!-- Datos -->
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./jefatura-historial.js"></script>
+
+</body>
+</html>
