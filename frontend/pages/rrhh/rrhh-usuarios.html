@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Usuarios | Admin RRHH</title>
+
+  <link rel="stylesheet" href="./rrhh-usuarios.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a href="./rrhh-historial.html">Historial asistencia</a>
+        <a class="active" href="./rrhh-usuarios.html">Gestión usuarios</a>
+        <a href="./rrhh-reportes.html">Reportes PDF</a>
+        <a href="./rrhh-superadmin.html">SuperAdmin</a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+        <div>
+          <h1>Gestión Global de Usuarios</h1>
+          <p>Administración general de funcionarios del DEM</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Admin RRHH</strong>
+          <span id="rolUsuario">AdminRRHH</span>
+        </div>
+      </header>
+
+      <section class="filters">
+        <input type="text" id="buscarInput" placeholder="Buscar por nombre, correo, rol o departamento..." />
+
+        <select id="rolFiltro">
+          <option value="">Todos los roles</option>
+          <option value="Funcionario">Funcionario</option>
+          <option value="Jefatura">Jefatura</option>
+          <option value="Administrador">Administrador</option>
+          <option value="AdminRRHH">AdminRRHH</option>
+          <option value="SuperAdmin">SuperAdmin</option>
+        </select>
+
+        <select id="estadoFiltro">
+          <option value="">Todos los estados</option>
+          <option value="ACTIVO">Activo</option>
+          <option value="INACTIVO">Inactivo</option>
+        </select>
+
+        <button id="btnRecargar">Recargar</button>
+      </section>
+
+      <section class="cards">
+        <div class="card">
+          <span>Total usuarios</span>
+          <strong id="totalUsuarios">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Usuarios activos</span>
+          <strong id="totalActivos">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Usuarios inactivos</span>
+          <strong id="totalInactivos">0</strong>
+        </div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-header">
+          <h2>Usuarios registrados</h2>
+          <p id="mensajeEstado">Cargando usuarios...</p>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Teléfono</th>
+                <th>Rol</th>
+                <th>Departamento</th>
+                <th>Subdepartamento</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaUsuarios">
+              <!-- Datos desde backend -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="modal" id="modalEditar">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Editar usuario</h2>
+        <button id="btnCerrarModal">×</button>
+      </div>
+
+      <form id="formEditar">
+        <input type="hidden" id="editIdUsuario" />
+
+        <div class="form-grid">
+          <div class="input-group">
+            <label>Nombres</label>
+            <input type="text" id="editNombres" required />
+          </div>
+
+          <div class="input-group">
+            <label>Apellidos</label>
+            <input type="text" id="editApellidos" required />
+          </div>
+
+          <div class="input-group">
+            <label>Correo</label>
+            <input type="email" id="editCorreo" required />
+          </div>
+
+          <div class="input-group">
+            <label>Teléfono</label>
+            <input type="text" id="editTelefono" />
+          </div>
+
+          <div class="input-group">
+            <label>Rol</label>
+            <select id="editRol" required>
+              <option value="3">Funcionario</option>
+              <option value="2">Jefatura</option>
+              <option value="1">Administrador</option>
+              <option value="5">AdminRRHH</option>
+              <option value="4">SuperAdmin</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Estado</label>
+            <select id="editEstado" required>
+              <option value="ACTIVO">ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="modal-note">
+          AdminRRHH puede gestionar usuarios generales y SuperAdmin. Si el usuario pertenece a otro administrador departamental, se recomienda no modificarlo desde esta pantalla.
+        </p>
+
+        <button type="submit" class="btnGuardar">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./rrhh-usuarios.js"></script>
+</body>
+</html>
