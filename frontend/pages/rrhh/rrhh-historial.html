@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historial Global | Admin RRHH</title>
+
+  <link rel="stylesheet" href="./rrhh-historial.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a class="active" href="./rrhh-historial.html">Historial asistencia</a>
+        <a href="./rrhh-usuarios.html">Gestión usuarios</a>
+        <a href="./rrhh-reportes.html">Reportes PDF</a>
+        <a href="./rrhh-superadmin.html">SuperAdmin</a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+        <div>
+          <h1>Historial Global de Asistencia</h1>
+          <p>Visualización general de marcaciones del DEM</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Admin RRHH</strong>
+          <span id="rolUsuario">AdminRRHH</span>
+        </div>
+      </header>
+
+      <section class="filters">
+        <input type="text" id="buscarInput" placeholder="Buscar por usuario, departamento o estado..." />
+
+        <select id="estadoFiltro">
+          <option value="">Todos los estados</option>
+          <option value="NORMAL">Normal</option>
+          <option value="TARDANZA">Tardanza</option>
+          <option value="HORA_EXTRA">Hora extra</option>
+          <option value="FUERA_HORARIO">Fuera de horario</option>
+          <option value="INASISTENCIA">Inasistencia</option>
+          <option value="PENDIENTE">Pendiente</option>
+        </select>
+
+        <button id="btnRecargar">Recargar</button>
+      </section>
+
+      <section class="cards">
+        <div class="card">
+          <span>Total marcaciones</span>
+          <strong id="totalMarcaciones">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Pendientes</span>
+          <strong id="totalPendientes">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Tardanzas</span>
+          <strong id="totalTardanzas">0</strong>
+        </div>
+      </section>
+
+      <section class="table-card">
+        <div class="table-header">
+          <h2>Registros de asistencia</h2>
+          <p id="mensajeEstado">Cargando información...</p>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Funcionario</th>
+                <th>Departamento</th>
+                <th>Subdepartamento</th>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Origen</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaMarcaciones">
+              <!-- Datos desde backend -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./rrhh-historial.js"></script>
+</body>
+</html>
