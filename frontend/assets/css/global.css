@@ -1,0 +1,75 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+a {
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.badge {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-block;
+}
+
+.badge.ACTIVO,
+.badge.NORMAL {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge.INACTIVO,
+.badge.TARDANZA {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge.PENDIENTE {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.HORA_EXTRA {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge.INASISTENCIA,
+.badge.FUERA_HORARIO {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
