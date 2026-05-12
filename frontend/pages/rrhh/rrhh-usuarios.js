@@ -150,7 +150,8 @@ async function cargarDepartamentos() {
       return;
     }
 
-    departamentos = data.data || [];
+    // FIX 1: el backend retorna data.departamentos, no data.data
+    departamentos = data.departamentos || [];
 
     nuevoDepartamento.innerHTML =
       '<option value="">Seleccione un departamento</option>';
@@ -180,7 +181,8 @@ async function cargarSubdepartamentos() {
       return;
     }
 
-    subdepartamentos = data.data || [];
+    // FIX 2: el backend retorna data.subdepartamentos, no data.data
+    subdepartamentos = data.subdepartamentos || [];
   } catch (error) {
     console.error("Error al cargar subdepartamentos:", error);
   }
@@ -203,7 +205,8 @@ function actualizarSubdepartamentos() {
   lista.forEach((s) => {
     const option = document.createElement("option");
     option.value = s.id_subdepartamento;
-    option.textContent = s.nombre;
+    // FIX 3: el service retorna el nombre como "subdepartamento", no "nombre"
+    option.textContent = s.subdepartamento;
     nuevoSubdepartamento.appendChild(option);
   });
 }
