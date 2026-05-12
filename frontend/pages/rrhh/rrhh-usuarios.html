@@ -12,7 +12,11 @@
   <div class="app">
 
     <aside class="sidebar">
-      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+      <img
+        src="../../assets/img/logo-horizontal.jpg"
+        alt="Logo DEM Ovalle"
+        class="logo"
+      />
 
       <nav>
         <a href="./rrhh-historial.html">Historial asistencia</a>
@@ -26,6 +30,7 @@
 
     <main class="content">
 
+      <!-- ENCABEZADO -->
       <header class="topbar">
         <div>
           <h1>Gestión Global de Usuarios</h1>
@@ -38,8 +43,13 @@
         </div>
       </header>
 
+      <!-- FILTROS -->
       <section class="filters">
-        <input type="text" id="buscarInput" placeholder="Buscar por nombre, correo, rol o departamento..." />
+        <input
+          type="text"
+          id="buscarInput"
+          placeholder="Buscar por nombre, correo, rol o departamento..."
+        />
 
         <select id="rolFiltro">
           <option value="">Todos los roles</option>
@@ -59,6 +69,7 @@
         <button id="btnRecargar">Recargar</button>
       </section>
 
+      <!-- RESUMEN -->
       <section class="cards">
         <div class="card">
           <span>Total usuarios</span>
@@ -76,10 +87,17 @@
         </div>
       </section>
 
+      <!-- TABLA -->
       <section class="table-card">
         <div class="table-header">
-          <h2>Usuarios registrados</h2>
-          <p id="mensajeEstado">Cargando usuarios...</p>
+          <div>
+            <h2>Usuarios registrados</h2>
+            <p id="mensajeEstado">Cargando usuarios...</p>
+          </div>
+
+          <button id="btnNuevoUsuario" class="btnNuevoUsuario">
+            + Nuevo Usuario
+          </button>
         </div>
 
         <div class="table-wrapper">
@@ -98,7 +116,7 @@
             </thead>
 
             <tbody id="tablaUsuarios">
-              <!-- Datos desde backend -->
+              <!-- Datos cargados dinámicamente -->
             </tbody>
           </table>
         </div>
@@ -107,6 +125,7 @@
     </main>
   </div>
 
+  <!-- MODAL EDITAR -->
   <div class="modal" id="modalEditar">
     <div class="modal-content">
       <div class="modal-header">
@@ -159,10 +178,136 @@
         </div>
 
         <p class="modal-note">
-          AdminRRHH puede gestionar usuarios generales y SuperAdmin. Si el usuario pertenece a otro administrador departamental, se recomienda no modificarlo desde esta pantalla.
+          AdminRRHH puede gestionar usuarios generales y SuperAdmin.
+          Si el usuario pertenece a otro administrador departamental,
+          se recomienda no modificarlo desde esta pantalla.
         </p>
 
-        <button type="submit" class="btnGuardar">Guardar cambios</button>
+        <button type="submit" class="btnGuardar">
+          Guardar cambios
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CREAR USUARIO -->
+  <div class="modal" id="modalNuevoUsuario">
+    <div class="modal-content modal-xl">
+      <div class="modal-header">
+        <h2>Crear Nuevo Usuario</h2>
+        <button id="btnCerrarModalNuevo">×</button>
+      </div>
+
+      <form id="formNuevoUsuario">
+
+        <div class="form-grid">
+
+          <div class="input-group">
+            <label>RUT</label>
+            <input
+              type="text"
+              id="nuevoRut"
+              placeholder="12345678-9"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <label>Nombres</label>
+            <input type="text" id="nuevoNombres" required />
+          </div>
+
+          <div class="input-group">
+            <label>Apellidos</label>
+            <input type="text" id="nuevoApellidos" required />
+          </div>
+
+          <div class="input-group">
+            <label>Correo</label>
+            <input
+              type="email"
+              id="nuevoCorreo"
+              placeholder="usuario@demovalle.cl"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <label>Teléfono</label>
+            <input type="text" id="nuevoTelefono" />
+          </div>
+
+          <div class="input-group">
+            <label>Contraseña</label>
+            <input
+              type="password"
+              id="nuevoPassword"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <label>Rol</label>
+            <select id="nuevoRol" required>
+              <option value="">Seleccione un rol</option>
+              <option value="3">Funcionario</option>
+              <option value="2">Jefatura</option>
+              <option value="1">Administrador</option>
+              <option value="5">AdminRRHH</option>
+              <option value="4">SuperAdmin</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Departamento (obligatorio para Administrador)</label>
+            <select id="nuevoDepartamento">
+              <option value="">Seleccione un departamento</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Subdepartamento</label>
+            <select id="nuevoSubdepartamento">
+              <option value="">Seleccione un subdepartamento</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Estado</label>
+            <select id="nuevoEstado" required>
+              <option value="ACTIVO" selected>ACTIVO</option>
+              <option value="INACTIVO">INACTIVO</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Fecha de inicio</label>
+            <input type="date" id="nuevoFechaInicio" />
+          </div>
+
+          <div class="input-group">
+            <label>Fecha de término</label>
+            <input type="date" id="nuevoFechaTermino" />
+          </div>
+
+        </div>
+
+        <p class="modal-note">
+          Reglas de asignación:
+          <br />
+          • Si el rol es <strong>Administrador</strong>, debe asignarse un
+          departamento.
+          <br />
+          • Si el rol es <strong>Funcionario</strong> o
+          <strong>Jefatura</strong>, debe asignarse un subdepartamento.
+          <br />
+          • Para roles globales como <strong>AdminRRHH</strong> y
+          <strong>SuperAdmin</strong>, la asignación es opcional.
+        </p>
+
+        <button type="submit" class="btnGuardar">
+          Crear Usuario
+        </button>
       </form>
     </div>
   </div>
