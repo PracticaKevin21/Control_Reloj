@@ -32,10 +32,42 @@ let reportes = [];
 nombreUsuario.textContent = `${usuario.nombres} ${usuario.apellidos}`;
 rolUsuario.textContent = usuario.rol;
 
+/* ==========================================
+   CONFIGURAR MES ACTUAL
+========================================== */
+function configurarMesActual() {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+
+  mesInput.value = `${anio}-${mes}`;
+}
+
+/* ==========================================
+   CONVERTIR YYYY-MM A FECHAS DEL MES
+========================================== */
+function obtenerRangoMes(valorMes) {
+  const [anio, mes] = valorMes.split("-").map(Number);
+
+  const fechaDesde = `${anio}-${String(mes).padStart(2, "0")}-01`;
+
+  const ultimoDia = new Date(anio, mes, 0).getDate();
+
+  const fechaHasta =
+    `${anio}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
+
+  return {
+    fecha_desde: fechaDesde,
+    fecha_hasta: fechaHasta
+  };
+}
+
+/* ==========================================
+   CARGAR SOLO FUNCIONARIOS ACTIVOS
+========================================== */
 async function cargarUsuarios() {
   try {
     const response = await fetch(`${API_URL}/usuarios`, {
-      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -44,34 +76,48 @@ async function cargarUsuarios() {
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
+      mensajeEstado.textContent =
+        "No se pudieron cargar los funcionarios.";
       return;
     }
 
-    usuarios = data.data || data.usuarios || [];
+    const todos = data.data || data.usuarios || [];
 
-    usuarioSelect.innerHTML = `
-      <option value="">Seleccione un funcionario</option>
-    `;
+    usuarios = todos.filter(
+      (u) =>
+        u.rol &&
+        u.rol.toLowerCase() === "funcionario" &&
+        u.estado === "ACTIVO"
+    );
+
+    usuarioSelect.innerHTML =
+      '<option value="">Seleccione un funcionario</option>';
 
     usuarios.forEach((u) => {
-      usuarioSelect.innerHTML += `
-        <option value="${u.id_usuario}">
-          ${u.nombres} ${u.apellidos} - ${u.rol}
-        </option>
-      `;
+      const option = document.createElement("option");
+      option.value = u.id_usuario;
+      option.textContent = `${u.nombres} ${u.apellidos}`;
+      usuarioSelect.appendChild(option);
     });
 
+    if (usuarios.length > 0) {
+      usuarioSelect.value = usuarios[0].id_usuario;
+    }
   } catch (error) {
     console.error(error);
+    mensajeEstado.textContent =
+      "Error al cargar los funcionarios.";
   }
 }
 
+/* ==========================================
+   CARGAR REPORTES
+========================================== */
 async function cargarReportes() {
   try {
     tablaMensaje.textContent = "Cargando reportes...";
 
     const response = await fetch(`${API_URL}/reportes`, {
-      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -80,31 +126,41 @@ async function cargarReportes() {
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      tablaMensaje.textContent = "No se pudieron cargar los reportes.";
+      reportes = [];
+      renderizarReportes([]);
       return;
     }
 
-    reportes = data.data || data.reportes || [];
+    reportes = data.data || [];
 
     renderizarReportes(reportes);
 
     totalReportes.textContent = reportes.length;
 
     if (reportes.length > 0) {
-      ultimoMes.textContent = reportes[0].mes || "-";
+      ultimoMes.textContent = formatearMes(
+        reportes[0].fecha_desde
+      );
+    } else {
+      ultimoMes.textContent = "-";
     }
 
-    tablaMensaje.textContent = `Reportes encontrados: ${reportes.length}`;
-
+    tablaMensaje.textContent =
+      `Reportes encontrados: ${reportes.length}`;
   } catch (error) {
+    reportes = [];
+    renderizarReportes([]);
     tablaMensaje.textContent = "Error de conexión.";
   }
 }
 
+/* ==========================================
+   RENDER TABLA
+========================================== */
 function renderizarReportes(lista) {
   tablaReportes.innerHTML = "";
 
-  if (lista.length === 0) {
+  if (!lista || lista.length === 0) {
     tablaReportes.innerHTML = `
       <tr>
         <td colspan="5">No existen reportes generados.</td>
@@ -118,12 +174,10 @@ function renderizarReportes(lista) {
 
     fila.innerHTML = `
       <td>${r.usuario || "Funcionario"}</td>
-      <td>${r.mes || "-"}</td>
+      <td>${formatearMes(r.fecha_desde)}</td>
       <td>${formatearFecha(r.fecha_generacion)}</td>
       <td>
-        <span class="badge">
-          GENERADO
-        </span>
+        <span class="badge">GENERADO</span>
       </td>
       <td>
         <button class="btnDescargar" data-id="${r.id_reporte}">
@@ -142,6 +196,9 @@ function renderizarReportes(lista) {
   });
 }
 
+/* ==========================================
+   GENERAR REPORTE
+========================================== */
 async function generarReporte(e) {
   e.preventDefault();
 
@@ -149,12 +206,17 @@ async function generarReporte(e) {
   const mes = mesInput.value;
 
   if (!id_usuario || !mes) {
-    mensajeEstado.textContent = "Debe completar todos los campos.";
+    mensajeEstado.textContent =
+      "Debe seleccionar un funcionario y un mes.";
     return;
   }
 
+  const { fecha_desde, fecha_hasta } =
+    obtenerRangoMes(mes);
+
   try {
-    mensajeEstado.textContent = "Generando reporte PDF...";
+    mensajeEstado.textContent =
+      "Generando reporte PDF...";
 
     const response = await fetch(`${API_URL}/reportes`, {
       method: "POST",
@@ -163,34 +225,54 @@ async function generarReporte(e) {
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
-        id_usuario,
-        mes
+        id_usuario: Number(id_usuario),
+        tipo: "MENSUAL",
+        fecha_desde,
+        fecha_hasta,
+        observacion: `Reporte mensual ${mes}`
       })
     });
 
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      mensajeEstado.textContent = data.mensaje || "No se pudo generar el reporte.";
+      mensajeEstado.textContent =
+        data.mensaje || "No se pudo generar el reporte.";
       return;
     }
 
-    mensajeEstado.textContent = "Reporte generado correctamente.";
+    mensajeEstado.textContent =
+      "Reporte generado correctamente.";
 
     await cargarReportes();
 
+    const idReporte = data.data?.id_reporte;
+
+    if (idReporte) {
+      descargarPDF(idReporte);
+    }
   } catch (error) {
-    mensajeEstado.textContent = "Error de conexión con el servidor.";
+    console.error(error);
+    mensajeEstado.textContent =
+      "Error de conexión con el servidor.";
   }
 }
 
+/* ==========================================
+   DESCARGAR PDF
+========================================== */
 function descargarPDF(idReporte) {
-  window.open(
-    `${API_URL}/reportes/${idReporte}/pdf?token=${token}`,
-    "_blank"
-  );
+  if (!idReporte) return;
+
+  const url =
+    `${API_URL}/reportes/${idReporte}/pdf`;
+
+  window.open(url, "_blank");
 }
 
+/* ==========================================
+   UTILIDADES
+========================================== */
 function formatearFecha(fecha) {
   if (!fecha) return "-";
 
@@ -203,14 +285,34 @@ function formatearFecha(fecha) {
   return fechaObj.toLocaleDateString("es-CL");
 }
 
+function formatearMes(fecha) {
+  if (!fecha) return "-";
+
+  const fechaObj = new Date(fecha);
+
+  return fechaObj.toLocaleDateString("es-CL", {
+    year: "numeric",
+    month: "long"
+  });
+}
+
+/* ==========================================
+   LOGOUT
+========================================== */
 btnLogout.addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("usuario");
-
   window.location.href = "../login/login.html";
 });
 
+/* ==========================================
+   EVENTOS
+========================================== */
 formReporte.addEventListener("submit", generarReporte);
 
+/* ==========================================
+   INICIALIZACIÓN
+========================================== */
+configurarMesActual();
 cargarUsuarios();
 cargarReportes();
