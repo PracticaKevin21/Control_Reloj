@@ -29,6 +29,9 @@ const btnLogout = document.getElementById("btnLogout");
 let usuarios = [];
 let reportes = [];
 
+/* ==========================================
+   DATOS DEL USUARIO
+========================================== */
 nombreUsuario.textContent = `${usuario.nombres} ${usuario.apellidos}`;
 rolUsuario.textContent = usuario.rol;
 
@@ -40,34 +43,40 @@ function configurarMesActual() {
   const anio = hoy.getFullYear();
   const mes = String(hoy.getMonth() + 1).padStart(2, "0");
 
+  // Formato requerido por <input type="month"> => YYYY-MM
   mesInput.value = `${anio}-${mes}`;
 }
 
 /* ==========================================
-   CONVERTIR YYYY-MM A FECHAS DEL MES
+   CONVERTIR YYYY-MM A RANGO DE FECHAS
 ========================================== */
 function obtenerRangoMes(valorMes) {
   const [anio, mes] = valorMes.split("-").map(Number);
 
-  const fechaDesde = `${anio}-${String(mes).padStart(2, "0")}-01`;
+  const fecha_desde =
+    `${anio}-${String(mes).padStart(2, "0")}-01`;
 
+  // new Date(anio, mes, 0) devuelve el último día del mes
   const ultimoDia = new Date(anio, mes, 0).getDate();
 
-  const fechaHasta =
+  const fecha_hasta =
     `${anio}-${String(mes).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
 
   return {
-    fecha_desde: fechaDesde,
-    fecha_hasta: fechaHasta
+    fecha_desde,
+    fecha_hasta
   };
 }
 
 /* ==========================================
-   CARGAR SOLO FUNCIONARIOS ACTIVOS
+   CARGAR TODOS LOS USUARIOS ACTIVOS
+   (Funcionario, Jefatura, Administrador,
+    AdminRRHH y SuperAdmin)
 ========================================== */
 async function cargarUsuarios() {
   try {
     const response = await fetch(`${API_URL}/usuarios`, {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -77,47 +86,59 @@ async function cargarUsuarios() {
 
     if (!response.ok || !data.ok) {
       mensajeEstado.textContent =
-        "No se pudieron cargar los funcionarios.";
+        "No se pudieron cargar los usuarios.";
       return;
     }
 
     const todos = data.data || data.usuarios || [];
 
-    usuarios = todos.filter(
-      (u) =>
-        u.rol &&
-        u.rol.toLowerCase() === "funcionario" &&
-        u.estado === "ACTIVO"
-    );
+    // Todos los usuarios activos del sistema
+    usuarios = todos.filter((u) => u.estado === "ACTIVO");
+
+    // Orden alfabético
+    usuarios.sort((a, b) => {
+      const nombreA = `${a.nombres} ${a.apellidos}`.toLowerCase();
+      const nombreB = `${b.nombres} ${b.apellidos}`.toLowerCase();
+      return nombreA.localeCompare(nombreB);
+    });
 
     usuarioSelect.innerHTML =
-      '<option value="">Seleccione un funcionario</option>';
+      '<option value="">Seleccione un usuario</option>';
+
+    if (usuarios.length === 0) {
+      mensajeEstado.textContent =
+        "No existen usuarios activos.";
+      return;
+    }
 
     usuarios.forEach((u) => {
       const option = document.createElement("option");
       option.value = u.id_usuario;
-      option.textContent = `${u.nombres} ${u.apellidos}`;
+      option.textContent =
+        `${u.nombres} ${u.apellidos} - ${u.rol}`;
       usuarioSelect.appendChild(option);
     });
 
-    if (usuarios.length > 0) {
-      usuarioSelect.value = usuarios[0].id_usuario;
-    }
+    // Seleccionar automáticamente el primero
+    usuarioSelect.value = usuarios[0].id_usuario;
+
+    mensajeEstado.textContent = "";
   } catch (error) {
     console.error(error);
     mensajeEstado.textContent =
-      "Error al cargar los funcionarios.";
+      "Error al cargar los usuarios.";
   }
 }
 
 /* ==========================================
-   CARGAR REPORTES
+   CARGAR HISTORIAL DE REPORTES
 ========================================== */
 async function cargarReportes() {
   try {
     tablaMensaje.textContent = "Cargando reportes...";
 
     const response = await fetch(`${API_URL}/reportes`, {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -128,10 +149,13 @@ async function cargarReportes() {
     if (!response.ok || !data.ok) {
       reportes = [];
       renderizarReportes([]);
+      totalReportes.textContent = "0";
+      ultimoMes.textContent = "-";
+      tablaMensaje.textContent = "No existen reportes aún.";
       return;
     }
 
-    reportes = data.data || [];
+    reportes = data.data || data.reportes || [];
 
     renderizarReportes(reportes);
 
@@ -148,14 +172,18 @@ async function cargarReportes() {
     tablaMensaje.textContent =
       `Reportes encontrados: ${reportes.length}`;
   } catch (error) {
+    console.error(error);
+
     reportes = [];
     renderizarReportes([]);
+    totalReportes.textContent = "0";
+    ultimoMes.textContent = "-";
     tablaMensaje.textContent = "Error de conexión.";
   }
 }
 
 /* ==========================================
-   RENDER TABLA
+   RENDERIZAR TABLA
 ========================================== */
 function renderizarReportes(lista) {
   tablaReportes.innerHTML = "";
@@ -173,14 +201,17 @@ function renderizarReportes(lista) {
     const fila = document.createElement("tr");
 
     fila.innerHTML = `
-      <td>${r.usuario || "Funcionario"}</td>
+      <td>${r.usuario || "Usuario"}</td>
       <td>${formatearMes(r.fecha_desde)}</td>
       <td>${formatearFecha(r.fecha_generacion)}</td>
       <td>
         <span class="badge">GENERADO</span>
       </td>
       <td>
-        <button class="btnDescargar" data-id="${r.id_reporte}">
+        <button
+          class="btnDescargar"
+          data-id="${r.id_reporte}"
+        >
           Descargar PDF
         </button>
       </td>
@@ -202,12 +233,18 @@ function renderizarReportes(lista) {
 async function generarReporte(e) {
   e.preventDefault();
 
-  const id_usuario = usuarioSelect.value;
-  const mes = mesInput.value;
+  const id_usuario = usuarioSelect.value.trim();
+  const mes = mesInput.value.trim();
 
-  if (!id_usuario || !mes) {
+  if (!id_usuario) {
     mensajeEstado.textContent =
-      "Debe seleccionar un funcionario y un mes.";
+      "Debe seleccionar un usuario.";
+    return;
+  }
+
+  if (!mes) {
+    mensajeEstado.textContent =
+      "Debe seleccionar un mes.";
     return;
   }
 
@@ -244,12 +281,14 @@ async function generarReporte(e) {
     mensajeEstado.textContent =
       "Reporte generado correctamente.";
 
+    // Recargar historial
     await cargarReportes();
 
+    // Descargar automáticamente el PDF recién generado
     const idReporte = data.data?.id_reporte;
 
     if (idReporte) {
-      descargarPDF(idReporte);
+      await descargarPDF(idReporte);
     }
   } catch (error) {
     console.error(error);
@@ -259,15 +298,50 @@ async function generarReporte(e) {
 }
 
 /* ==========================================
-   DESCARGAR PDF
+   DESCARGAR PDF CON TOKEN
 ========================================== */
-function descargarPDF(idReporte) {
-  if (!idReporte) return;
+async function descargarPDF(idReporte) {
+  try {
+    const response = await fetch(
+      `${API_URL}/reportes/${idReporte}/pdf`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
 
-  const url =
-    `${API_URL}/reportes/${idReporte}/pdf`;
+    if (!response.ok) {
+      let mensaje = "No se pudo descargar el PDF.";
 
-  window.open(url, "_blank");
+      try {
+        const errorData = await response.json();
+        mensaje = errorData.mensaje || mensaje;
+      } catch (_) {
+        // Si la respuesta no es JSON, mantener mensaje por defecto
+      }
+
+      alert(mensaje);
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = `reporte_${idReporte}.pdf`;
+
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(error);
+    alert("Error al descargar el PDF.");
+  }
 }
 
 /* ==========================================
@@ -290,6 +364,10 @@ function formatearMes(fecha) {
 
   const fechaObj = new Date(fecha);
 
+  if (isNaN(fechaObj.getTime())) {
+    return fecha;
+  }
+
   return fechaObj.toLocaleDateString("es-CL", {
     year: "numeric",
     month: "long"
@@ -297,11 +375,12 @@ function formatearMes(fecha) {
 }
 
 /* ==========================================
-   LOGOUT
+   CERRAR SESIÓN
 ========================================== */
 btnLogout.addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("usuario");
+
   window.location.href = "../login/login.html";
 });
 
