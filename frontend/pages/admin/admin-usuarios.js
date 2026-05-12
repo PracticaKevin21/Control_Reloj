@@ -61,12 +61,14 @@ async function cargarUsuarios() {
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      mensajeEstado.textContent = data.mensaje || "No se pudo cargar usuarios.";
+      mensajeEstado.textContent =
+        data.mensaje || "No se pudo cargar usuarios.";
       return;
     }
 
     const usuarios = data.data || data.usuarios || [];
 
+    // El Administrador solo gestiona Funcionarios y Jefaturas
     usuariosOriginales = usuarios.filter(
       (u) => u.rol === "Funcionario" || u.rol === "Jefatura"
     );
@@ -74,10 +76,12 @@ async function cargarUsuarios() {
     renderizarUsuarios(usuariosOriginales);
     actualizarResumen(usuariosOriginales);
 
-    mensajeEstado.textContent = `Usuarios encontrados: ${usuariosOriginales.length}`;
-
+    mensajeEstado.textContent =
+      `Usuarios encontrados: ${usuariosOriginales.length}`;
   } catch (error) {
-    mensajeEstado.textContent = "Error de conexión con el servidor.";
+    console.error(error);
+    mensajeEstado.textContent =
+      "Error de conexión con el servidor.";
   }
 }
 
@@ -113,11 +117,28 @@ function renderizarUsuarios(lista) {
       </td>
       <td>
         <div class="acciones">
-          <button class="btnEditar" data-id="${u.id_usuario}">Editar</button>
+          <button
+            class="btnEditar"
+            data-id="${u.id_usuario}">
+            Editar
+          </button>
+
           ${
             u.estado === "ACTIVO"
-              ? `<button class="btnDesactivar" data-id="${u.id_usuario}">Desactivar</button>`
-              : `<button class="btnActivar" data-id="${u.id_usuario}">Activar</button>`
+              ? `
+                <button
+                  class="btnDesactivar"
+                  data-id="${u.id_usuario}">
+                  Desactivar
+                </button>
+              `
+              : `
+                <button
+                  class="btnActivar"
+                  data-id="${u.id_usuario}">
+                  Activar
+                </button>
+              `
           }
         </div>
       </td>
@@ -127,22 +148,30 @@ function renderizarUsuarios(lista) {
   });
 
   document.querySelectorAll(".btnEditar").forEach((btn) => {
-    btn.addEventListener("click", () => abrirModalEditar(btn.dataset.id));
+    btn.addEventListener("click", () =>
+      abrirModalEditar(btn.dataset.id)
+    );
   });
 
   document.querySelectorAll(".btnDesactivar").forEach((btn) => {
-    btn.addEventListener("click", () => cambiarEstadoUsuario(btn.dataset.id, "INACTIVO"));
+    btn.addEventListener("click", () =>
+      cambiarEstadoUsuario(btn.dataset.id, "INACTIVO")
+    );
   });
 
   document.querySelectorAll(".btnActivar").forEach((btn) => {
-    btn.addEventListener("click", () => cambiarEstadoUsuario(btn.dataset.id, "ACTIVO"));
+    btn.addEventListener("click", () =>
+      cambiarEstadoUsuario(btn.dataset.id, "ACTIVO")
+    );
   });
 }
 
 function actualizarResumen(lista) {
   totalUsuarios.textContent = lista.length;
-  totalFuncionarios.textContent = lista.filter((u) => u.rol === "Funcionario").length;
-  totalJefaturas.textContent = lista.filter((u) => u.rol === "Jefatura").length;
+  totalFuncionarios.textContent =
+    lista.filter((u) => u.rol === "Funcionario").length;
+  totalJefaturas.textContent =
+    lista.filter((u) => u.rol === "Jefatura").length;
 }
 
 function filtrarUsuarios() {
@@ -170,25 +199,82 @@ function filtrarUsuarios() {
 
   renderizarUsuarios(filtrados);
   actualizarResumen(filtrados);
-  mensajeEstado.textContent = `Usuarios mostrados: ${filtrados.length}`;
+
+  mensajeEstado.textContent =
+    `Usuarios mostrados: ${filtrados.length}`;
 }
 
-function abrirModalEditar(idUsuario) {
-  usuarioSeleccionado = usuariosOriginales.find(
-    (u) => Number(u.id_usuario) === Number(idUsuario)
-  );
+/*
+  FUNCIÓN CORREGIDA:
+  Ahora obtiene el usuario completo desde el backend mediante
+  GET /api/usuarios/:id, incluyendo:
+  - id_subdepartamento
+  - id_departamento_asignado
 
-  if (!usuarioSeleccionado) return;
+  Esto evita que esos campos se envíen como null al guardar.
+*/
+async function abrirModalEditar(idUsuario) {
+  try {
+    mensajeEstado.textContent =
+      "Cargando datos del usuario...";
 
-  editNombres.value = usuarioSeleccionado.nombres || "";
-  editApellidos.value = usuarioSeleccionado.apellidos || "";
-  editCorreo.value = usuarioSeleccionado.correo || "";
-  editTelefono.value = usuarioSeleccionado.telefono || "";
-  editEstado.value = usuarioSeleccionado.estado || "ACTIVO";
+    const response = await fetch(
+      `${API_URL}/usuarios/${idUsuario}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
 
-  editRol.value = rolesPorNombre[usuarioSeleccionado.rol] || 3;
+    const data = await response.json();
 
-  modalEditar.classList.add("show");
+    if (!response.ok || !data.ok) {
+      mensajeEstado.textContent = "";
+      alert(
+        data.mensaje ||
+        "No se pudo cargar la información del usuario."
+      );
+      return;
+    }
+
+    // Guardar el usuario completo con todos sus IDs
+    usuarioSeleccionado = data.data;
+
+    if (!usuarioSeleccionado) {
+      mensajeEstado.textContent = "";
+      alert("No se encontró la información del usuario.");
+      return;
+    }
+
+    // Llenar formulario
+    editNombres.value =
+      usuarioSeleccionado.nombres || "";
+    editApellidos.value =
+      usuarioSeleccionado.apellidos || "";
+    editCorreo.value =
+      usuarioSeleccionado.correo || "";
+    editTelefono.value =
+      usuarioSeleccionado.telefono || "";
+    editEstado.value =
+      usuarioSeleccionado.estado || "ACTIVO";
+
+    // Mapear rol al valor numérico del select
+    editRol.value =
+      rolesPorNombre[usuarioSeleccionado.rol] || 3;
+
+    mensajeEstado.textContent = "";
+
+    // Mostrar modal
+    modalEditar.classList.add("show");
+  } catch (error) {
+    console.error(error);
+    mensajeEstado.textContent = "";
+    alert(
+      "Error de conexión al cargar los datos del usuario."
+    );
+  }
 }
 
 function cerrarModal() {
@@ -208,78 +294,129 @@ async function guardarCambiosUsuario(e) {
     correo: editCorreo.value.trim(),
     telefono: editTelefono.value.trim(),
     id_rol: Number(editRol.value),
-    id_subdepartamento: usuarioSeleccionado.id_subdepartamento || null,
-    id_departamento_asignado: usuarioSeleccionado.id_departamento_asignado || null,
+
+    // Se conservan los IDs originales
+    id_subdepartamento:
+      usuarioSeleccionado.id_subdepartamento || null,
+
+    id_departamento_asignado:
+      usuarioSeleccionado.id_departamento_asignado || null,
+
     estado: editEstado.value
   };
 
   try {
-    const response = await fetch(`${API_URL}/usuarios/${usuarioSeleccionado.id_usuario}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
+    const response = await fetch(
+      `${API_URL}/usuarios/${usuarioSeleccionado.id_usuario}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      alert(data.mensaje || "No se pudo actualizar el usuario.");
+      alert(
+        data.mensaje ||
+        "No se pudo actualizar el usuario."
+      );
       return;
     }
 
     cerrarModal();
     await cargarUsuarios();
-
   } catch (error) {
+    console.error(error);
     alert("Error de conexión con el servidor.");
   }
 }
 
-async function cambiarEstadoUsuario(idUsuario, nuevoEstado) {
+async function cambiarEstadoUsuario(
+  idUsuario,
+  nuevoEstado
+) {
   const usuarioObjetivo = usuariosOriginales.find(
-    (u) => Number(u.id_usuario) === Number(idUsuario)
+    (u) =>
+      Number(u.id_usuario) === Number(idUsuario)
   );
 
   if (!usuarioObjetivo) return;
 
-  const confirmar = confirm(`¿Seguro que deseas dejar este usuario como ${nuevoEstado}?`);
+  const confirmar = confirm(
+    `¿Seguro que deseas dejar este usuario como ${nuevoEstado}?`
+  );
 
   if (!confirmar) return;
 
-  const payload = {
-    nombres: usuarioObjetivo.nombres,
-    apellidos: usuarioObjetivo.apellidos,
-    correo: usuarioObjetivo.correo,
-    telefono: usuarioObjetivo.telefono,
-    id_rol: rolesPorNombre[usuarioObjetivo.rol],
-    id_subdepartamento: usuarioObjetivo.id_subdepartamento || null,
-    id_departamento_asignado: usuarioObjetivo.id_departamento_asignado || null,
-    estado: nuevoEstado
-  };
-
   try {
-    const response = await fetch(`${API_URL}/usuarios/${idUsuario}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
+    // Obtener usuario completo para preservar IDs
+    const responseGet = await fetch(
+      `${API_URL}/usuarios/${idUsuario}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const dataGet = await responseGet.json();
+
+    if (!responseGet.ok || !dataGet.ok) {
+      alert(
+        dataGet.mensaje ||
+        "No se pudo obtener la información del usuario."
+      );
+      return;
+    }
+
+    const usuarioCompleto = dataGet.data;
+
+    const payload = {
+      nombres: usuarioCompleto.nombres,
+      apellidos: usuarioCompleto.apellidos,
+      correo: usuarioCompleto.correo,
+      telefono: usuarioCompleto.telefono,
+      id_rol:
+        rolesPorNombre[usuarioCompleto.rol] || 3,
+      id_subdepartamento:
+        usuarioCompleto.id_subdepartamento || null,
+      id_departamento_asignado:
+        usuarioCompleto.id_departamento_asignado ||
+        null,
+      estado: nuevoEstado
+    };
+
+    const response = await fetch(
+      `${API_URL}/usuarios/${idUsuario}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      alert(data.mensaje || "No se pudo cambiar el estado.");
+      alert(
+        data.mensaje ||
+        "No se pudo cambiar el estado."
+      );
       return;
     }
 
     await cargarUsuarios();
-
   } catch (error) {
+    console.error(error);
     alert("Error de conexión con el servidor.");
   }
 }
@@ -290,12 +427,16 @@ estadoFiltro.addEventListener("change", filtrarUsuarios);
 btnRecargar.addEventListener("click", cargarUsuarios);
 
 btnCerrarModal.addEventListener("click", cerrarModal);
-formEditar.addEventListener("submit", guardarCambiosUsuario);
+formEditar.addEventListener(
+  "submit",
+  guardarCambiosUsuario
+);
 
 btnLogout.addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("usuario");
-  window.location.href = "../login/login.html";
+  window.location.href =
+    "../login/login.html";
 });
 
 cargarUsuarios();
