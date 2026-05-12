@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Mi Historial | SuperAdmin</title>
+
+  <link rel="stylesheet" href="./superadmin-historial.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a href="./superadmin-admins.html">Gestión administradores</a>
+        <a class="active" href="./superadmin-historial.html">Mi historial</a>
+      </nav>
+
+      <button id="btnLogout">Cerrar sesión</button>
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+
+        <div>
+          <h1>Mi Historial de Asistencia</h1>
+          <p>Visualización de marcaciones personales del SuperAdmin</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">SuperAdmin</strong>
+          <span id="rolUsuario">SuperAdmin</span>
+        </div>
+
+      </header>
+
+      <section class="filters">
+
+        <input 
+          type="date"
+          id="fechaFiltro"
+        />
+
+        <select id="estadoFiltro">
+          <option value="">Todos los estados</option>
+          <option value="NORMAL">Normal</option>
+          <option value="TARDANZA">Tardanza</option>
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="HORA_EXTRA">Hora extra</option>
+        </select>
+
+        <select id="tipoFiltro">
+          <option value="">Todos los tipos</option>
+          <option value="ENTRADA">Entrada</option>
+          <option value="SALIDA">Salida</option>
+        </select>
+
+        <button id="btnRecargar">
+          Recargar
+        </button>
+
+      </section>
+
+      <section class="cards">
+
+        <div class="card">
+          <span>Total marcaciones</span>
+          <strong id="totalMarcaciones">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Pendientes</span>
+          <strong id="totalPendientes">0</strong>
+        </div>
+
+        <div class="card">
+          <span>Tardanzas</span>
+          <strong id="totalTardanzas">0</strong>
+        </div>
+
+      </section>
+
+      <section class="table-card">
+
+        <div class="table-header">
+          <h2>Historial personal</h2>
+          <p id="mensajeEstado">Cargando historial...</p>
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Origen</th>
+                <th>Estado</th>
+                <th>Observación</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaMarcaciones">
+              <!-- Datos -->
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./superadmin-historial.js"></script>
+
+</body>
+</html>
