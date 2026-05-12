@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>QR Asistencia | Funcionario</title>
+
+  <link rel="stylesheet" href="./funcionario-salida-qr.css" />
+
+  <!-- Librería QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <div class="app">
+
+    <aside class="sidebar">
+
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM Ovalle" class="logo" />
+
+      <nav>
+        <a class="active" href="./funcionario-salida-qr.html">
+          Código QR
+        </a>
+      </nav>
+
+      <button id="btnLogout">
+        Cerrar sesión
+      </button>
+
+    </aside>
+
+    <main class="content">
+
+      <header class="topbar">
+
+        <div>
+          <h1>Marcación de Salida</h1>
+          <p>Escanee el código QR desde el dispositivo autorizado</p>
+        </div>
+
+        <div class="user-box">
+          <strong id="nombreUsuario">Funcionario</strong>
+          <span id="rolUsuario">Funcionario</span>
+        </div>
+
+      </header>
+
+      <section class="status-grid">
+
+        <div class="status-card">
+          <span>Estado actual</span>
+          <strong id="estadoActual">ACTIVO</strong>
+        </div>
+
+        <div class="status-card">
+          <span>Última salida</span>
+          <strong id="ultimaSalida">-</strong>
+        </div>
+
+        <div class="status-card">
+          <span>QR actualizado</span>
+          <strong id="horaActualizacion">-</strong>
+        </div>
+
+      </section>
+
+      <section class="qr-container">
+
+        <div class="qr-card">
+
+          <div class="qr-header">
+            <h2>Código QR dinámico</h2>
+
+            <p>
+              Este código cambia automáticamente después de cada escaneo.
+            </p>
+          </div>
+
+          <div class="qr-box">
+
+            <div id="qrcode"></div>
+
+          </div>
+
+          <div class="qr-info">
+
+            <p>
+              Usuario:
+              <strong id="usuarioQR">-</strong>
+            </p>
+
+            <p>
+              Token QR:
+              <strong id="tokenQR">-</strong>
+            </p>
+
+          </div>
+
+          <div class="qr-actions">
+
+            <button id="btnActualizarQR">
+              Actualizar QR
+            </button>
+
+            <button id="btnSimularEscaneo">
+              Simular escaneo
+            </button>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="history-card">
+
+        <div class="history-header">
+          <h2>Últimas marcaciones</h2>
+          <p id="mensajeEstado">Cargando historial...</p>
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Origen</th>
+              </tr>
+            </thead>
+
+            <tbody id="tablaMarcaciones">
+              <!-- Datos -->
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="../../assets/js/config.js"></script>
+  <script src="./funcionario-salida-qr.js"></script>
+
+</body>
+</html>
