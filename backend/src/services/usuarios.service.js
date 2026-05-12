@@ -13,6 +13,9 @@ async function getUsuarios(scope) {
       u.apellidos,
       u.correo,
       u.telefono,
+      u.id_rol,
+      u.id_subdepartamento,
+      u.id_departamento_asignado,
       r.nombre AS rol,
       d.nombre AS departamento,
       s.nombre AS subdepartamento,
@@ -20,24 +23,21 @@ async function getUsuarios(scope) {
       u.fecha_inicio
     FROM usuarios u
     JOIN roles r ON u.id_rol = r.id_rol
-    LEFT JOIN departamentos d 
+    LEFT JOIN departamentos d
       ON u.id_departamento_asignado = d.id_departamento
-    LEFT JOIN subdepartamentos s 
+    LEFT JOIN subdepartamentos s
       ON u.id_subdepartamento = s.id_subdepartamento
   `;
 
   const params = [];
 
-  // GLOBAL
   if (scope.tipo === 'global') {
     query += ` ORDER BY u.id_usuario ASC`;
   }
 
-  // DEPARTAMENTO
   else if (scope.tipo === 'departamento') {
-
     query += `
-      WHERE 
+      WHERE
         u.id_departamento_asignado = ?
         OR s.id_departamento = ?
       ORDER BY u.id_usuario ASC
@@ -47,9 +47,7 @@ async function getUsuarios(scope) {
     params.push(scope.id_departamento);
   }
 
-  // SUBDEPARTAMENTO
   else if (scope.tipo === 'subdepartamento') {
-
     query += `
       WHERE u.id_subdepartamento = ?
       ORDER BY u.id_usuario ASC
@@ -58,9 +56,7 @@ async function getUsuarios(scope) {
     params.push(scope.id_subdepartamento);
   }
 
-  // PROPIO
   else if (scope.tipo === 'propio') {
-
     query += `
       WHERE u.id_usuario = ?
       ORDER BY u.id_usuario ASC
@@ -80,13 +76,16 @@ async function getUsuarios(scope) {
 async function getUsuarioById(id, scope) {
 
   let query = `
-    SELECT 
+    SELECT
       u.id_usuario,
       u.rut,
       u.nombres,
       u.apellidos,
       u.correo,
       u.telefono,
+      u.id_rol,
+      u.id_subdepartamento,
+      u.id_departamento_asignado,
       r.nombre AS rol,
       d.nombre AS departamento,
       s.nombre AS subdepartamento,
@@ -94,18 +93,16 @@ async function getUsuarioById(id, scope) {
       u.fecha_inicio
     FROM usuarios u
     JOIN roles r ON u.id_rol = r.id_rol
-    LEFT JOIN departamentos d 
+    LEFT JOIN departamentos d
       ON u.id_departamento_asignado = d.id_departamento
-    LEFT JOIN subdepartamentos s 
+    LEFT JOIN subdepartamentos s
       ON u.id_subdepartamento = s.id_subdepartamento
     WHERE u.id_usuario = ?
   `;
 
   const params = [id];
 
-  // DEPARTAMENTO
   if (scope.tipo === 'departamento') {
-
     query += `
       AND (
         u.id_departamento_asignado = ?
@@ -117,9 +114,7 @@ async function getUsuarioById(id, scope) {
     params.push(scope.id_departamento);
   }
 
-  // SUBDEPARTAMENTO
   else if (scope.tipo === 'subdepartamento') {
-
     query += `
       AND u.id_subdepartamento = ?
     `;
@@ -127,9 +122,7 @@ async function getUsuarioById(id, scope) {
     params.push(scope.id_subdepartamento);
   }
 
-  // PROPIO
   else if (scope.tipo === 'propio') {
-
     query += `
       AND u.id_usuario = ?
     `;
@@ -159,11 +152,12 @@ async function createUsuario(data, usuarioAuth) {
     id_departamento_asignado
   } = data;
 
-  // VALIDAR DUPLICADOS
   const [exists] = await pool.query(
-    `SELECT id_usuario 
-     FROM usuarios 
-     WHERE rut = ? OR correo = ?`,
+    `
+    SELECT id_usuario
+    FROM usuarios
+    WHERE rut = ? OR correo = ?
+    `,
     [rut, correo]
   );
 
@@ -171,7 +165,6 @@ async function createUsuario(data, usuarioAuth) {
     throw new Error('Ya existe un usuario con ese rut o correo');
   }
 
-  // OBTENER ROL
   const [rolRows] = await pool.query(
     `SELECT nombre FROM roles WHERE id_rol = ?`,
     [id_rol]
@@ -183,14 +176,8 @@ async function createUsuario(data, usuarioAuth) {
 
   const rolNombre = rolRows[0].nombre;
 
-  /* =========================
-     RESTRICCIONES POR ROL
-  ========================= */
-
-  // ADMINISTRADOR
   if (usuarioAuth.rol === 'Administrador') {
 
-    // NO puede crear SuperAdmin/AdminRRHH/Admin
     if (
       rolNombre === 'SuperAdmin' ||
       rolNombre === 'AdminRRHH' ||
@@ -199,9 +186,7 @@ async function createUsuario(data, usuarioAuth) {
       throw new Error('No tienes permisos para crear ese rol');
     }
 
-    // Debe pertenecer a su departamento
     if (id_departamento_asignado) {
-
       if (
         Number(id_departamento_asignado) !==
         Number(usuarioAuth.id_departamento_asignado)
@@ -211,19 +196,13 @@ async function createUsuario(data, usuarioAuth) {
     }
   }
 
-  // JEFATURA
   if (usuarioAuth.rol === 'Jefatura') {
     throw new Error('Jefatura no puede crear usuarios');
   }
 
-  // FUNCIONARIO
   if (usuarioAuth.rol === 'Funcionario') {
     throw new Error('Funcionario no puede crear usuarios');
   }
-
-  /* =========================
-     INSERT
-  ========================= */
 
   const [result] = await pool.query(
     `
@@ -267,6 +246,23 @@ async function createUsuario(data, usuarioAuth) {
 ========================= */
 async function updateUsuario(id, data) {
 
+  const [rows] = await pool.query(
+    `
+    SELECT
+      id_subdepartamento,
+      id_departamento_asignado
+    FROM usuarios
+    WHERE id_usuario = ?
+    `,
+    [id]
+  );
+
+  if (rows.length === 0) {
+    throw new Error('Usuario no encontrado');
+  }
+
+  const usuarioActual = rows[0];
+
   const {
     nombres,
     apellidos,
@@ -277,6 +273,16 @@ async function updateUsuario(id, data) {
     id_departamento_asignado,
     estado
   } = data;
+
+  const subdepartamentoFinal =
+    id_subdepartamento !== undefined
+      ? id_subdepartamento
+      : usuarioActual.id_subdepartamento;
+
+  const departamentoFinal =
+    id_departamento_asignado !== undefined
+      ? id_departamento_asignado
+      : usuarioActual.id_departamento_asignado;
 
   await pool.query(
     `
@@ -298,8 +304,8 @@ async function updateUsuario(id, data) {
       correo,
       telefono,
       id_rol,
-      id_subdepartamento || null,
-      id_departamento_asignado || null,
+      subdepartamentoFinal,
+      departamentoFinal,
       estado,
       id
     ]
