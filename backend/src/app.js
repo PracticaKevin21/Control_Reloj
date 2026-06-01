@@ -2,15 +2,16 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth.routes');
-const usuariosRoutes = require('./routes/usuarios.routes');
+const authRoutes          = require('./routes/auth.routes');
+const usuariosRoutes      = require('./routes/usuarios.routes');
 const departamentosRoutes = require('./routes/departamentos.routes');
 const subdepartamentosRoutes = require('./routes/subdepartamentos.routes');
-const turnosRoutes = require('./routes/turnos.routes');
-const usuarioTurnosRoutes = require('./routes/usuario_turnos.routes'); // 👈 NUEVO
-const marcacionesRoutes = require('./routes/marcaciones.routes');
-const solicitudesRoutes = require('./routes/solicitudes.routes');
-const reportesRoutes = require('./routes/reportes.routes');
+const turnosRoutes        = require('./routes/turnos.routes');
+const usuarioTurnosRoutes = require('./routes/usuario_turnos.routes');
+const marcacionesRoutes   = require('./routes/marcaciones.routes');
+const solicitudesRoutes   = require('./routes/solicitudes.routes');
+const reportesRoutes      = require('./routes/reportes.routes');
+const v2QrRoutes          = require('./routes/v2-qr.routes'); // ← NUEVO
 
 const app = express();
 
@@ -21,21 +22,19 @@ app.use(express.urlencoded({ extended: true }));
 
 // Ruta base
 app.get('/', (req, res) => {
-  res.json({
-    ok: true,
-    mensaje: 'Backend funcionando correctamente'
-  });
+  res.json({ ok: true, mensaje: 'Backend funcionando correctamente' });
 });
 
 // Rutas
-app.use('/api/auth', authRoutes);
-app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/departamentos', departamentosRoutes);
+app.use('/api/auth',            authRoutes);
+app.use('/api/usuarios',        usuariosRoutes);
+app.use('/api/departamentos',   departamentosRoutes);
 app.use('/api/subdepartamentos', subdepartamentosRoutes);
-app.use('/api/turnos', turnosRoutes);
-app.use('/api/usuario-turnos', usuarioTurnosRoutes); // 👈 NUEVO
-app.use('/api/marcaciones', marcacionesRoutes);
-app.use('/api/solicitudes', solicitudesRoutes);
-app.use('/api/reportes', reportesRoutes);
+app.use('/api/turnos',          turnosRoutes);
+app.use('/api/usuario-turnos',  usuarioTurnosRoutes);
+app.use('/api/marcaciones',     marcacionesRoutes);
+app.use('/api/solicitudes',     solicitudesRoutes);
+app.use('/api/reportes',        reportesRoutes);
+app.use('/api/v2/qr',           v2QrRoutes); // ← NUEVO
 
 module.exports = app;

@@ -3,52 +3,103 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Salida QR | Control de Asistencia</title>
-
+  <title>Código QR de Salida | DEM</title>
   <link rel="stylesheet" href="./salida-qr.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
-  <main class="page">
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <h1>Código QR de Salida</h1>
-          <p>Genera un código QR único para marcar solo la salida desde la app móvil.</p>
+  <div class="qr-page">
+
+    <header class="qr-header">
+      <img src="../../assets/img/logo-horizontal.jpg" alt="Logo DEM" class="qr-logo" />
+      <div class="qr-header-text">
+        <h1>Código QR de Salida</h1>
+        <p>Departamento de Educación Municipal</p>
+      </div>
+    </header>
+
+    <main class="qr-main">
+
+      <!-- PASO 1: Ingresar ID -->
+      <section id="paso-id" class="qr-card">
+        <div class="step-icon">👤</div>
+        <h2>Ingresa tu ID de funcionario</h2>
+        <p class="step-desc">
+          Escribe el número de ID que figura en tu perfil del sistema.
+          Este QR registrará tu <strong>salida</strong> del día.
+        </p>
+        <div class="input-group">
+          <label for="inputIdUsuario">ID de usuario</label>
+          <input
+            type="number"
+            id="inputIdUsuario"
+            placeholder="Ej: 31"
+            min="1"
+            autocomplete="off"
+          />
         </div>
-      </div>
+        <button id="btnGenerarQR" class="btn-primary">Generar código QR</button>
+        <p id="errorId" class="msg-error hidden"></p>
+      </section>
 
-      <div class="qr-area">
-        <div id="qrcode"></div>
-      </div>
-
-      <div class="info-grid">
-        <div>
-          <span>Token</span>
-          <strong id="tokenQR">-</strong>
+      <!-- PASO 2: Mostrar QR -->
+      <section id="paso-qr" class="qr-card hidden">
+        <div class="qr-info-banner">
+          <span class="badge-salida">SALIDA</span>
+          <div>
+            <p class="qr-label">Funcionario ID: <strong id="displayIdUsuario">--</strong></p>
+            <p class="qr-label">Generado: <strong id="displayHora">--</strong></p>
+          </div>
         </div>
-        <div>
-          <span>Generado</span>
-          <strong id="horaActualizacion">-</strong>
+
+        <div class="qr-container">
+          <div id="qrcode"></div>
+          <p class="qr-overlay-text">Escanear con la APK Android</p>
         </div>
-      </div>
 
-      <div class="actions">
-        <button id="btnGenerarQR">Generar nuevo QR</button>
-        <button id="btnCopiarToken">Copiar token</button>
-      </div>
+        <div class="countdown-area">
+          <div class="countdown-bar-wrap">
+            <div id="countdownBar" class="countdown-bar"></div>
+          </div>
+          <p class="countdown-text">Expira en <strong id="segsLeft">30</strong>s</p>
+        </div>
 
-      <div class="note">
-        <p>Este código QR únicamente debe ser escaneado desde la app Android autorizada para registrar una salida en la base de datos.</p>
-      </div>
+        <div id="qrStatus" class="qr-status activo">
+          <span class="status-dot"></span>
+          <span id="qrStatusText">QR activo — escanea ahora</span>
+        </div>
 
-      <div class="back-link">
-        <a href="../login/login.html">Volver al login</a>
-      </div>
-    </section>
-  </main>
+        <div class="qr-actions">
+          <button id="btnRenovar" class="btn-primary">🔄 Renovar QR</button>
+          <button id="btnVolver" class="btn-secondary">← Cambiar usuario</button>
+        </div>
+      </section>
 
+      <!-- PASO 3: Éxito -->
+      <section id="paso-exito" class="qr-card hidden">
+        <div class="step-icon">✅</div>
+        <h2>¡Salida registrada!</h2>
+        <p class="step-desc">Tu salida fue registrada exitosamente en el sistema.</p>
+        <button id="btnNuevoQR" class="btn-primary">Generar nuevo QR</button>
+      </section>
+
+    </main>
+
+    <footer class="qr-footer">
+      <h3>¿Cómo usar?</h3>
+      <ol>
+        <li>Ingresa tu ID de usuario del sistema.</li>
+        <li>Muestra el código QR en pantalla.</li>
+        <li>El encargado escanea con la APK de Android.</li>
+        <li>Tu salida queda registrada automáticamente.</li>
+      </ol>
+      <p class="footer-note">⚠️ El QR expira en 30 segundos. Renuévalo si es necesario.</p>
+    </footer>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="../../assets/js/config.js"></script>
   <script src="./salida-qr.js"></script>
 </body>
 </html>
