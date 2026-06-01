@@ -157,3 +157,4 @@ btnLogout.addEventListener("click", () => {
 });
 
 cargarMarcaciones();
+setInterval(cargarMarcaciones, 5000);

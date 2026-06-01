@@ -1,0 +1,156 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: #eff5ff;
+  color: #0f172a;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.card {
+  width: 100%;
+  max-width: 700px;
+  background: white;
+  border-radius: 28px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+  padding: 32px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.card-header h1 {
+  font-size: 30px;
+  color: #0b2447;
+}
+
+.card-header p {
+  margin-top: 8px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.qr-area {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: #f8fbff;
+  border-radius: 24px;
+  border: 1px solid #dbe7f7;
+  margin-bottom: 24px;
+}
+
+#qrcode {
+  background: white;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.info-grid div {
+  background: #f8fafc;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-grid span {
+  display: block;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.info-grid strong {
+  display: block;
+  color: #0f172a;
+  font-size: 16px;
+  word-break: break-all;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.actions button {
+  flex: 1;
+  min-width: 180px;
+  border: none;
+  padding: 16px;
+  border-radius: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+#btnGenerarQR {
+  background: linear-gradient(135deg, #005dff, #00a2ff);
+  color: white;
+}
+
+#btnCopiarToken {
+  background: #0f172a;
+  color: white;
+}
+
+.actions button:hover {
+  transform: translateY(-1px);
+}
+
+.note {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  color: #334155;
+  border-radius: 18px;
+  padding: 18px 20px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.back-link {
+  text-align: center;
+}
+
+.back-link a {
+  text-decoration: none;
+  color: #005dff;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 24px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

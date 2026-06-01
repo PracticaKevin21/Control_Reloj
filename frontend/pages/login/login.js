@@ -3,6 +3,7 @@ const correoInput = document.getElementById("correo");
 const passwordInput = document.getElementById("password");
 const mensaje = document.getElementById("mensaje");
 const btnLogin = document.getElementById("btnLogin");
+const btnSalidaQR = document.getElementById("btnSalidaQR");
 
 function mostrarMensaje(texto, tipo) {
   mensaje.textContent = texto;
@@ -11,7 +12,7 @@ function mostrarMensaje(texto, tipo) {
 
 function redirigirPorRol(rol) {
   const rutas = {
-    Funcionario: "../funcionario/funcionario-salida-qr.html",
+    Funcionario: "../funcionario/salida-qr.html",
     Jefatura: "../jefatura/jefatura-historial.html",
     Administrador: "../admin/admin-usuarios.html",
     AdminRRHH: "../rrhh/rrhh-historial.html",
@@ -70,4 +71,8 @@ loginForm.addEventListener("submit", async (e) => {
     btnLogin.disabled = false;
     btnLogin.textContent = "Iniciar sesión";
   }
+});
+
+btnSalidaQR.addEventListener("click", () => {
+  window.location.href = "../funcionario/salida-qr.html";
 });

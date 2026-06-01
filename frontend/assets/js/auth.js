@@ -28,7 +28,7 @@ function protegerRuta(rolPermitido) {
 
 function redirigirPorRol(rol) {
   const rutas = {
-    Funcionario: "../funcionario/funcionario-salida-qr.html",
+    Funcionario: "../funcionario/salida-qr.html",
     Jefatura: "../jefatura/jefatura-historial.html",
     Administrador: "../admin/admin-usuarios.html",
     AdminRRHH: "../rrhh/rrhh-historial.html",

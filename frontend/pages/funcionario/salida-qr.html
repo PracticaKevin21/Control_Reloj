@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salida QR | Control de Asistencia</title>
+
+  <link rel="stylesheet" href="./salida-qr.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <main class="page">
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h1>Código QR de Salida</h1>
+          <p>Genera un código QR único para marcar solo la salida desde la app móvil.</p>
+        </div>
+      </div>
+
+      <div class="qr-area">
+        <div id="qrcode"></div>
+      </div>
+
+      <div class="info-grid">
+        <div>
+          <span>Token</span>
+          <strong id="tokenQR">-</strong>
+        </div>
+        <div>
+          <span>Generado</span>
+          <strong id="horaActualizacion">-</strong>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="btnGenerarQR">Generar nuevo QR</button>
+        <button id="btnCopiarToken">Copiar token</button>
+      </div>
+
+      <div class="note">
+        <p>Este código QR únicamente debe ser escaneado desde la app Android autorizada para registrar una salida en la base de datos.</p>
+      </div>
+
+      <div class="back-link">
+        <a href="../login/login.html">Volver al login</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="./salida-qr.js"></script>
+</body>
+</html>
