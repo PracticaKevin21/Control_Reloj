@@ -1,7 +1,7 @@
 const { pool } = require('../config/db');
 
 const QR_MAX_EDAD_SEG    = 30;
-const HORA_MINIMA_SALIDA = '14:00:00';
+const HORA_MINIMA_SALIDA = '10:00:00';
 
 // ── Registrar salida vía QR ───────────────────────────────────
 async function registrarSalidaQR(idUsuario, qrContenido) {
